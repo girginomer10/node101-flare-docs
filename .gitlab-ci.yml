@@ -85,10 +85,16 @@ lint:build:
   stage: lint
   extends: .node
   variables:
-    # GitLab runners are memory-constrained. A large heap plus parallel webpack/SSG
-    # workers can trigger kernel OOM (exit 137) instead of a Node heap error.
-    NODE_OPTIONS: "--max-old-space-size=2048"
+    # The job was getting OOMKilled at the container/cgroup level (exit 137),
+    # not a V8 heap error, so shrinking NODE_OPTIONS alone can't fix it —
+    # request more headroom from the executor if it honors these (Kubernetes
+    # executor reads KUBERNETES_*; harmless no-op on other executors).
+    KUBERNETES_MEMORY_REQUEST: "3Gi"
+    KUBERNETES_MEMORY_LIMIT: "4Gi"
+    NODE_OPTIONS: "--max-old-space-size=1536"
     DOCUSAURUS_SSG_WORKER_THREAD_COUNT: "1"
+    DOCUSAURUS_SSG_CONCURRENCY: "1"
+    DOCUSAURUS_SSG_WORKER_THREAD_RECYCLER_MAX_MEMORY: "268435456"
     GENERATE_SOURCEMAP: "false"
   script:
     - pnpm run build
