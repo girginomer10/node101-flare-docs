@@ -61,7 +61,7 @@ The script automatically detects all claimable periods and processes them.
 To run the Firelight vault claim script:
 
 1. Ensure you have the [Flare Hardhat Starter Kit](/network/guides/hardhat-foundry-starter-kit) set up.
-2. Update the `FIRELIGHT_VAULT_ADDRESS` constant with the correct vault address for your network.
+2. Update `FIRELIGHT_VAULT_ADDRESS` in `firelight-constants.ts` with the correct vault address for your network.
 3. Optionally set `periodToClaim` to claim a specific period (0 means auto-detect all claimable periods).
 4. Run the script using Hardhat:
 
@@ -76,7 +76,7 @@ The script outputs the following information:
 ```bash
 === Claim Withdrawals (ERC-4626) ===
 Sender: 0x0d09ff7630588E05E2449aBD3dDD1D8d146bc5c2
-Vault: 0x91Bfe6A68aB035DFebb6A770FFfB748C03C0E40B
+Vault: 0xC90D6847747b85d1fa2E07859869fb9fB72c0361
 Asset: 0x0b6A3645c240605887a5532109323A3E12273dc7 (FTestXRP, decimals=6)
 
 === Period Info ===

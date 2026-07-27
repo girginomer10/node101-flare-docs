@@ -4,6 +4,12 @@ import type * as Preset from "@docusaurus/preset-classic";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 
+// Use the GitLab-specific flag (not generic CI) so we only skip build-time
+// work in the memory-constrained lint:build job, never in the actual
+// production deploy, which may run on a different CI provider that also
+// sets CI=true.
+const isGitlabCI = process.env.GITLAB_CI === "true";
+
 const config: Config = {
   title: "Flare Developer Hub",
   tagline: "Official documentation for Flare.",
@@ -48,8 +54,9 @@ const config: Config = {
       lightningCssMinimizer: true,
       rspackBundler: false,
       rspackPersistentCache: false,
-      ssgWorkerThreads: true,
-      mdxCrossCompilerCache: true,
+      // Worker threads / cross-compiler cache raise peak RSS; keep them off in CI.
+      ssgWorkerThreads: process.env.CI !== "true",
+      mdxCrossCompilerCache: process.env.CI !== "true",
     },
   },
 
@@ -237,17 +244,23 @@ const config: Config = {
   } satisfies Preset.ThemeConfig,
   themes: [
     "@docusaurus/theme-mermaid",
-    [
-      require.resolve("@easyops-cn/docusaurus-search-local"),
-      {
-        language: ["en"],
-        indexDocs: true,
-        indexPages: true,
-        indexBlog: false,
-        hashed: true,
-        docsRouteBasePath: "/",
-      },
-    ],
+    // Building the local search index is memory-heavy and unnecessary for
+    // lint:build, which only verifies the site compiles.
+    ...(isGitlabCI
+      ? []
+      : [
+          [
+            require.resolve("@easyops-cn/docusaurus-search-local"),
+            {
+              language: ["en"],
+              indexDocs: true,
+              indexPages: true,
+              indexBlog: false,
+              hashed: true,
+              docsRouteBasePath: "/",
+            },
+          ],
+        ]),
   ],
   stylesheets: [
     {
