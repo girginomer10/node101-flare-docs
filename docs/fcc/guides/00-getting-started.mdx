@@ -303,15 +303,15 @@ cp config/proxy/extension_proxy.coston2.toml.example \
   config/proxy/extension_proxy.coston2.toml
 ```
 
-Edit the `[db]` block:
+Edit the `[db]` block in `config/proxy/extension_proxy.coston2.docker.toml` with the Coston2 indexer host and the read-only credentials provided to you:
 
 ```toml title="config/proxy/extension_proxy.coston2.docker.toml"
 [db]
-host = "<indexer-db-host>"
+host = "34.38.42.208"
 port = 3306
-database = "<indexer-db-name>"
-username = "<indexer-db-user>"
-password = "<indexer-db-password>"
+database = "indexer"
+username = "<your-indexer-db-username>"
+password = "<your-indexer-db-password>"
 log_queries = false
 ```
 
