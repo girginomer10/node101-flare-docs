@@ -14,6 +14,13 @@ keywords:
     solidity,
     flare-network,
     songbird-network,
+    coston2,
+    fdc,
+    fassets,
+    fxrp,
+    smart-accounts,
+    fcc,
+    tee,
   ]
 ---
 
@@ -31,6 +38,23 @@ Flare provides faucets for its public testnets:
   Use Coston2 for testing applications intended for Flare mainnet.
 - **Songbird Testnet Coston:** Get CFLR from the [Coston Faucet](https://faucet.flare.network/coston).
   Use Coston for testing applications intended for the Songbird canary network.
+
+### What if I need more testnet tokens than the faucet gives me?
+
+The faucet is rate limited per address, which is enough for most development and testing.
+If your application genuinely needs more, for example because it registers TEE machines or runs a keeper loop, ask on one of the [support channels](#where-can-i-get-technical-support-or-ask-questions) and say how much you need and why.
+
+Do not expect testnet tokens to be sent to a pasted address on request.
+
+### Which network should I build against while developing?
+
+Use **Coston2** unless you have a specific reason not to.
+It is the primary dApp testnet, it is the network the developer guides target, and it is where testnet FXRP and USDT0 are available from the faucet.
+
+Some things are network specific:
+
+- [Flare Confidential Compute](/fcc/overview) is only available on Coston2 while it is in development.
+- FAssets also run on [Songbird](/fassets/songbird), which uses different [parameters](/fassets/operational-parameters) from Flare Mainnet.
 
 ### How do I add Flare/Songbird networks to my wallet (e.g., MetaMask)?
 
@@ -58,6 +82,14 @@ Read more on the [Network Overview](/network/overview) page.
 - **For Production Applications:** It is **strongly recommended** to use a dedicated RPC endpoint from a provider for better performance, reliability, and support.
   See the [Developer Tools](/network/developer-tools#rpcs) page for options.
 - **For Running Nodes:** You can also run your own [RPC node](/run-node#rpc-node).
+
+### Do I need an API key for the RPC endpoints or the block explorer?
+
+No.
+The public RPC endpoints and the explorer APIs work without a key, so an `.env` variable such as `FLARE_RPC_API_KEY` can be left empty.
+That is enough for development, with the rate limits described above.
+
+The one key you do need for FDC work is the [verifier API key](#where-do-i-get-the-fdc-verifier-api-key), which is also public.
 
 ### What is the block time and finality on Flare?
 
@@ -97,6 +129,188 @@ Flare maintains several resources to aid development:
 ### Where can I learn about Flare-specific terminology?
 
 Learn more about the terminology used in the Flare ecosystem (like FTSO, FSP, PDA, etc.) on the [Terminology](/support/terminology) page.
+
+### How do I give an AI coding agent accurate Flare context?
+
+Agents that work from memory alone tend to invent contract addresses and outdated protocol names.
+Two options give them the current documentation instead:
+
+- [Flare AI Skills](/network/guides/flare-ai-skills) packages Flare protocol knowledge for coding agents.
+- The [Flare Developer Hub MCP Server](/network/guides/flare-developer-hub-mcp-server) exposes these docs to any MCP-capable client.
+
+## FTSO and Randomness
+
+### How do I show a live FTSO price in a frontend?
+
+Read the feed offchain rather than paying for a transaction on every page load.
+The [Read feeds offchain](/ftso/guides/read-feeds-offchain) guide covers querying `FtsoV2` directly from JavaScript, Python, Go, and Rust.
+
+If your application logic needs the price onchain, expose a public method on your own contract that reads the feed, and call that.
+
+### Can I get a secure random number within a specific range?
+
+Yes.
+The protocol provides a uniformly distributed random number, and you constrain it in your own contract, typically with a modulo of the range size.
+See [Secure Random Numbers](/network/guides/secure-random-numbers), and always check the `isSecure` flag before using a value.
+
+## Flare Data Connector
+
+### Where do I get the FDC verifier API key?
+
+The public verifier API key is `00000000-0000-0000-0000-000000000000`, listed with the verifier endpoints under [API Resources](/network/overview#api-resources) on the Network Overview page.
+The starter kits ship it in `.env.example`, which you copy to `.env` before running any script.
+
+For higher DA Layer rate limits, open an [API Key Request](https://github.com/flare-foundation/developer-hub/issues/new/choose) issue.
+
+### Why does the verifier return 401 Unauthorized?
+
+Almost always the header name rather than the key.
+The verifier expects the key in an `X-API-KEY` header; header names such as `X-apikey` are rejected with a `401`.
+
+Each verifier also publishes an interactive API document, for example [the XRP verifier](https://fdc-verifiers-testnet.flare.network/verifier/xrp/api-doc), which is the fastest way to confirm your request shape outside your own code.
+
+### Why did no data providers pick up my attestation request?
+
+The providers voted that they could not prove it.
+On the [AttestationRequests](https://coston2-systems-explorer.flare.rocks/attestation-request) page of the Flare Systems Explorer, each provider's bit vote is shown, and a request nobody can prove never enters the Merkle tree, so the DA Layer has no proof to return.
+
+The usual causes, in order of how often they come up:
+
+1. The API returns a different value to each provider, so their response hashes disagree.
+2. Query parameters are embedded in the `url` field instead of `queryParams`.
+3. The endpoint is slow, private, or rate limited, so providers cannot fetch it at all.
+   A locally correct request that mocks slow work in the background will still fail here.
+
+The [FDC Troubleshooting](/fdc/troubleshooting) page works through each case with fixes.
+
+### How long does an attestation take, and which voting round should I query?
+
+Attestation is round based, so a request takes minutes by design rather than returning within a transaction.
+Treat that as part of your architecture: submit the request, then complete the flow when the proof exists.
+
+The round to query is derived from the timestamp of the block that contains your request, not one you choose.
+The [Web2Json guide](/fdc/guides/hardhat/web2-json) shows the calculation, and offsets differ between networks.
+
+### Does FDC only verify data from other blockchains?
+
+No.
+FDC verifies Web2 data as well through the [Web2Json](/fdc/attestation-types/web2-json) attestation type, alongside the chain-specific types such as [Payment](/fdc/attestation-types/payment) and [EVMTransaction](/fdc/attestation-types/evm-transaction).
+
+## FAssets and FXRP
+
+### Which assets are available as FAssets today?
+
+FXRP is live.
+Other non-smart-contract assets are planned but not available yet, so build on FXRP today.
+
+For testing, the [Coston2 faucet](https://faucet.flare.network/coston2) provides both FXRP and USDT0 alongside C2FLR.
+FXRP is also an [Omnichain Fungible Token](/fxrp/oft), so it can move to and from other chains over LayerZero rather than being confined to Flare.
+
+### Can I choose which agent handles my redemption?
+
+No.
+Redemption takes tickets from the front of a [FIFO queue](/fassets/redemption#redemption-tickets-and-the-redemption-queue), which prevents users from selecting agents and keeps the workload spread across them.
+
+Minting no longer involves picking an agent either.
+See [Minting](/fassets/minting) for the current flow.
+
+### Do I have to redeem whole lots?
+
+No.
+[`redeemAmount`](/fassets/developer-guides/fassets-redeem-amount) takes an arbitrary amount in UBA, and [`redeemWithTag`](/fassets/developer-guides/fassets-redeem-with-tag) does the same while requiring an XRPL destination tag on the payout, which is what exchange and custodial deposits need.
+
+Redemption by whole lots still exists, but new integrations should not build on it.
+
+### I sent XRP for a direct mint but received no FXRP. What now?
+
+The underlying XRP is not lost.
+Recovery depends on how the payment was addressed, so start with the [Minting Troubleshooting](/fassets/troubleshooting/minting-troubleshooting) page.
+
+If you minted through Smart Accounts, follow [Recover Stuck Mint Transaction](/smart-accounts/guides/typescript-viem/recover-stuck-mint-transaction-ts).
+
+### How do I read agent information, and can I register my own agent on testnet?
+
+Enumerate agents with [List Agents](/fassets/developer-guides/fassets-list-agents), and read collateral ratios, names, and icons with [Agent Details](/fassets/developer-guides/fassets-agent-details).
+
+Agents are whitelisted through Flare governance, so you cannot register one for a test or a demo.
+Build against the existing agents instead, and prefer flows that do not name a specific agent.
+
+## Smart Accounts
+
+### Where is the starter code for Smart Accounts?
+
+The [TypeScript and viem guides](/smart-accounts/guides/typescript-viem/custom-instruction-ts) are the fastest path, and the [Flare Hardhat Starter](https://github.com/flare-foundation/flare-hardhat-starter) includes Smart Accounts contracts.
+
+### Why does my XRPL transaction succeed while the instruction never executes?
+
+Two things account for most of these.
+
+1. **The personal account has no funds.**
+   A custom instruction that sends value out of the personal account reverts if that account is empty, and the XRPL side still looks successful.
+   Fund the personal account address printed by the script from the [Coston2 faucet](https://faucet.flare.network/coston2) before running it.
+2. **You are looking for the wrong transaction.**
+   The `MasterAccountController` is the entry point, so your instruction runs as an internal transaction rather than a top-level transaction from your own address.
+   Check the internal transactions of the personal account on the explorer.
+
+## Flare Confidential Compute
+
+### Is Flare Confidential Compute available to build on?
+
+Yes, on **Coston2**.
+The Flare Confidential Compute (FCC) is [in the final stages of development](/fcc/overview) and not yet a fully public production system, so treat interfaces as subject to change, but the guides run end to end today.
+
+Start with [Build Your First Extension](/fcc/guides/getting-started), then the [Private Key Extension](/fcc/guides/sign-extension) and [Weather Insurance Extension](/fcc/guides/weather-insurance-extension) examples.
+
+### Do I need a Google Cloud Confidential Space VM?
+
+Not for development.
+Set `SIMULATED_TEE=true` and run the stack locally with Docker against the live Coston2 chain, tunnelling your extension proxy over HTTPS.
+Only the attestation is simulated; everything else is the real network.
+
+Confidential Space hardware belongs to production hosting, and no paid cloud service is needed to work through the guides.
+
+### How do I get Coston2 indexer database credentials?
+
+The local `ext-proxy` reads TEE events from Flare's C-chain indexer, so it needs read-only credentials that are not published in the guides.
+Request them through [technical support](https://flare.network/resources/technical-support) or [X](https://x.com/FlareDevs) and say what you are building, as described in [Build Your First Extension](/fcc/guides/getting-started).
+
+Credentials shared in community chats go stale, and older repository documents may reference retired hosts or a VPN requirement that no longer applies.
+
+### Where are the FCC registry addresses for Coston2?
+
+In the scaffold, at `config/coston2/deployed-addresses.json`, which the deploy tooling reads for you.
+This is temporary while FCC is in development; on release, the addresses will resolve through the [`FlareContractRegistry`](/network/guides/flare-contracts-registry) contract like every other Flare protocol.
+
+Take the addresses from that file rather than from a chat message or an older guide, because the Coston2 deployment is still moving.
+
+### Why does my TEE machine stay INITIALIZED with a 404 on the availability check?
+
+The availability check and the Coston2 data providers work, so a machine that never reaches production is nearly always a local mismatch: a stale stack pointing at a retired deployment, or a registered URL that no longer resolves because a quick tunnel restarted.
+
+Start by reading your own onchain state with the scaffold's `query-tee` tool, then work through [FCC Troubleshooting](/fcc/troubleshooting#tee-machine-never-reaches-production).
+
+### Why does my custom instruction emit onchain but never reach my extension?
+
+If other instructions from the same extension relay normally, check the operation names.
+The `F_` prefix and the system command names are reserved, and a custom operation that reuses one is not delivered without reporting an error.
+
+See [Instructions never reach your extension](/fcc/troubleshooting#instructions-never-reach-your-extension) for the reserved names and the fix.
+
+### How do I get a private key or API credential into the enclave?
+
+Never store the secret onchain.
+Encrypt it with the TEE's public key and deposit it with the proxy, or for a Web2 credential, set it in the environment so it is loaded into enclave memory at startup and never exposed.
+The [Private Key Extension](/fcc/guides/sign-extension) guide shows both the key generation and the signing flow.
+
+Recovery plan.
+A TEE machine can go down, and an extension should be treated as stateless, so decide up front how a key survives the loss of the machine.
+
+### Are Protocol Managed Wallets available yet?
+
+Not yet.
+[Protocol Managed Wallets](/fcc/overview) are still in development.
+
+If you need to control an account on another chain today, do it with a Flare Compute Extension that holds the key inside the TEE, which is the pattern the [Private Key Extension](/fcc/guides/sign-extension) guide demonstrates.
 
 ## Community & Support
 

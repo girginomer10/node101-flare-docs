@@ -411,3 +411,5 @@ Hooks `scripts/extension-setup.sh` and `scripts/extension-post-setup.sh` are no-
 | `InvalidGovernanceHash`                              | `GOVERNANCE_SIGNERS` / `GOVERNANCE_THRESHOLD` in `.env` must match what the `extension-tee` container received; rebuild/restart after changing them. |
 | Attestation / registration failures                  | Confirm `LOCAL_MODE=false`, `SIMULATED_TEE=true`, and `NORMAL_PROXY_URL=https://tee-proxy-coston2-1.flare.rocks`.                                    |
 | Docker build fails fetching `tee-node` / `tee-proxy` | Confirm network access so Go can fetch the pinned `tee-node` module and Docker can build from `proxy/Dockerfile`.                                    |
+
+For issues that are not specific to this walkthrough, such as a TEE machine that never reaches production, a proxy that rejects TEE signatures, or instructions that never reach your extension, see [FCC Troubleshooting](/fcc/troubleshooting).
