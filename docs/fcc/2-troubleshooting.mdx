@@ -1,0 +1,189 @@
+---
+sidebar_position: 2
+title: Troubleshooting
+description: Common issues and solutions when building Flare Compute Extensions on Coston2.
+keywords:
+  [
+    fcc,
+    flare-confidential-compute,
+    tee,
+    troubleshooting,
+    coston2,
+    extension,
+    register-tee,
+    ext-proxy,
+    flare-network,
+  ]
+---
+
+This page covers common issues developers encounter when building [Flare Compute Extensions](/fcc/overview) and how to resolve them.
+
+Flare Confidential Compute is still in development, and the Coston2 deployment changes as it progresses.
+Most failures are not bugs in your extension: they are a local stack that has drifted from the current onchain deployment, or a registered URL that no longer resolves.
+Work through the causes below before assuming the network is at fault.
+
+## TEE Machine Never Reaches Production
+
+### Symptoms
+
+- `register-tee` submits the registration and the availability check attestation request, and both transactions succeed.
+- Polling the normal proxy for the availability check result returns `404` indefinitely, across several voting rounds.
+- Your extension proxy logs show no inbound requests from data providers, and the main queue stays empty.
+- The TEE still answers `F_GET` / `TEE_INFO` health checks on the direct queue, so the container itself is healthy.
+- The machine never leaves the initialized state, so `getRandomTeeIds` returns nothing and calls that need a machine revert with `TooMany()`.
+
+### Check Your Own Onchain State First
+
+Before reporting an infrastructure problem, read back what you actually registered.
+The scaffold ships a `query-tee` tool for this:
+
+```bash
+go run ./tools/cmd/query-tee -reg <FlareTeeManager address> <your TEE id>
+```
+
+Take the `FlareTeeManager` address from `config/coston2/deployed-addresses.json` rather than relying on the tool's built-in default, which can lag behind a redeploy.
+
+Two things in the output matter most:
+
+- **The registered `url`.**
+  Compare it character by character with the URL you are serving right now.
+  Data providers push to the URL stored onchain, so a mismatch explains an empty queue completely.
+- **An empty `teeId`.**
+  If `getTeeMachine` reports an empty machine, nothing is registered at that contract, and you are almost certainly talking to a different deployment than you think.
+
+### Cause: The Registered URL No Longer Resolves
+
+Quick tunnels mint a new hostname on every restart.
+If the tunnel restarted after registration, the onchain URL points at a hostname that no longer exists, and no amount of waiting will produce a result.
+
+Use a named [Cloudflare tunnel](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/) or a reserved ngrok domain so the hostname survives restarts.
+Whenever the URL changes, update `EXT_PROXY_URL` and rerun the post-build step so the new URL is stored onchain.
+
+### Cause: Stale Contract Addresses After A Redeploy
+
+A local stack still pointing at a previous deployment produces errors that look unrelated to each other:
+
+| Error                                            | What it usually means                                                            |
+| ------------------------------------------------ | -------------------------------------------------------------------------------- |
+| `FunctionNotFound(bytes4)`                       | The facet your bindings expect is not present on the contract you are calling    |
+| `execution reverted: only reward offers manager` | The call is reaching a contract that does not recognize your caller in this role |
+| `register()` reverting with no clear reason      | The registration is hitting a retired deployment                                 |
+
+Fix it in this order:
+
+1. Pull the latest `main` of the scaffold or example repository you started from.
+   The repositories are on GitHub under the [`flare-foundation`](https://github.com/flare-foundation) organization with an `fce-` prefix, such as [`fce-extension-scaffold`](https://github.com/flare-foundation/fce-extension-scaffold) and [`fce-sign`](https://github.com/flare-foundation/fce-sign).
+   GitLab paths in older documents are not an access route, and the `tee-proxy` and `tee-node` repositories are [mirrored on GitHub](https://github.com/flare-foundation/tee-proxy) as well.
+2. If your extension is built on an older base, rebase your changes onto the current `main` rather than patching addresses by hand.
+3. Take every system address from `config/coston2/deployed-addresses.json`.
+   Do not copy addresses out of chat messages or older guides.
+4. A redeploy can clear existing registrations.
+   Re-run the pre-build step to get a fresh extension ID, then run post-build again.
+
+### Cause: The Availability Check Was Never Requested Or Promoted
+
+The `register-tee` tool takes a `-command` flag, and the default (`rap`) is not the full first-time sequence.
+Use `-command rRap`, which pre-registers the machine, requests a fresh attestation, runs the availability check, and promotes the machine to production.
+Check that `scripts/post-build.sh` passes the expected flag before concluding that the check never ran.
+
+## Proxy Fails To Start Or Rejects TEE Responses
+
+### Symptoms
+
+- The extension proxy panics on startup, for example `fetching initial TEE info: hex string without 0x prefix`.
+- The proxy starts but rejects what the TEE returns, for example `verifying response signature: invalid signature`.
+- The TEE container logs a signing failure such as `error signing: could not sign`.
+
+### Root Cause: Version Skew Between `tee-node` And `tee-proxy`
+
+The two components share a wire format that changes while FCC is in development.
+When their versions disagree, requests are still exchanged, but signatures and payload wrappers no longer line up, which surfaces as parse or signature errors rather than as a version warning.
+
+The scaffold build is self-contained precisely to avoid this: the Go module files pin `tee-node`, `proxy/Dockerfile` pins `tee-proxy` through `TEE_PROXY_VERSION`, and that Dockerfile states that the two pins must stay aligned.
+
+### Solution: Build With The Pinned Versions
+
+- Do not bump one side alone.
+  If you need a newer `tee-proxy`, move the Go module pin in the same change.
+- Building from on-disk checkouts, through the local siblings toggle, is what usually introduces skew.
+  Unless you are developing the node or proxy themselves, build from the pinned versions instead.
+- Rebuild the images after changing any of this, since Docker Compose only picks up new pins on a build.
+
+## Instructions Never Reach Your Extension
+
+### Symptoms
+
+- The instruction is accepted onchain, and you get an instruction ID back.
+- The instruction never arrives at your extension, and polling the action result returns `404`.
+- Other instructions from the same extension relay and round-trip normally.
+
+### Root Cause: Reserved Operation Names
+
+Operation names are shared between the system and custom extensions, and part of that space is reserved.
+
+The `F_` prefix is reserved for system operation types.
+These types exist in the system, each with a fixed set of commands:
+
+| Operation type | Purpose                                   |
+| -------------- | ----------------------------------------- |
+| `F_REG`        | TEE attestation and registration          |
+| `F_WALLET`     | Key generation, backup, restore, and VRF  |
+| `F_GET`        | Read-only queries such as TEE info        |
+| `F_POLICY`     | Signing policy initialization and updates |
+| `F_GOVERNANCE` | Machine path list management              |
+| `F_XRP`        | XRPL payments and reissues                |
+| `F_BTC`        | Bitcoin payments and reissues             |
+| `F_FDC2`       | FDC2 proving                              |
+
+:::warning
+The command names those types use are reserved too, including `TEE_ATTESTATION`, `TEE_INFO`, `TEE_BACKUP`, `KEY_GENERATE`, `KEY_INFO`, `KEY_PROOF`, `KEY_DELETE`, `KEY_DIRECT_BACKUP`, `KEY_DIRECT_RESTORE`, `KEY_DATA_PROVIDER_RESTORE`, `INITIALIZE_POLICY`, `UPDATE_POLICY`, `SET_MACHINE_PATH_LIST`, `PAY`, `REISSUE`, `VRF`, and `PROVE`.
+:::
+
+A custom operation type that does not start with `F_` passes local pair validation even when its command reuses one of those reserved names, so this failure gives you no error at all: the instruction is not delivered to a custom extension.
+
+### Solution: Name Operations After Your Own Domain
+
+Choose operation type and command strings that are specific to your extension, and do not reuse a system command name even with a custom type.
+Descriptive names also make instructions easier to identify onchain.
+
+### Related: Name Mismatch Between Solidity And Go
+
+If the extension responds with `unsupported op type` or `unsupported op command`, the instruction reached you, and the names do not match.
+The `bytes32("...")` strings in your Solidity contract must match the constants in `internal/config/config.go` exactly, including case.
+
+## Indexer Database Connection Fails
+
+### Symptoms
+
+- The proxy never becomes ready, and its logs show a database error rather than a queue problem.
+- Authentication fails with a message such as `Access denied for user 'indexer-reader'`.
+- The connection times out against a host that older documents describe as VPN-only.
+
+### Root Cause: Stale Host Or Credentials
+
+The extension proxy reads TEE events from Flare's C-chain indexer.
+Credentials embedded in older repository documents have been rotated, and the host listed there is not the one Coston2 development uses.
+
+### Solution
+
+Configure the `[db]` block with the host documented in [Build Your First Extension](/fcc/guides/getting-started#step-3-configure-the-indexer-database), and request current read-only credentials through [technical support](https://flare.network/resources/technical-support) or [X](https://x.com/FlareDevs), telling the team what you are building.
+
+Coston2 access does not require a VPN.
+Target Coston2 rather than Coston: Coston uses different credentials and adds a VPN requirement, and FCC development is on Coston2.
+
+## Simulated Versus Production Attestation
+
+Local development runs a simulated TEE against the live Coston2 chain, with `SIMULATED_TEE=true` and `LOCAL_MODE=false`, which the guides set for you through `MODE=1`.
+Only attestation is simulated; the contracts, data providers, and instruction flow are real.
+You do not need Confidential Space hardware, a paid cloud account, or any special permission to work through the guides.
+
+A production deployment is the opposite case.
+It runs on a real Confidential Space VM with `MODE=0`, because production attestation verification rejects simulated attestations.
+
+## Getting Further Help
+
+The guides carry their own symptom tables for problems specific to a single walkthrough, including [Build Your First Extension](/fcc/guides/getting-started#troubleshooting).
+
+If none of the above resolves it, ask through [technical support](https://flare.network/resources/technical-support) or on [X](https://x.com/FlareDevs).
+Include your extension ID, TEE machine address, the instruction ID that failed, and the output of `query-tee` for that machine.
+Those four details usually identify the cause immediately.
