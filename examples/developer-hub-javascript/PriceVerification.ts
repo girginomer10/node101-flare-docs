@@ -125,7 +125,7 @@ async function submitAttestationRequests(data: Map<string, string>) {
     console.log("Submitted request:", transaction.tx, "\n");
     const roundId = await calculateRoundId(transaction);
     console.log(
-      `Check round progress at: https://${hre.network.name}-systems-explorer.flare.rocks/voting-round/${roundId}?tab=fdc\n`,
+      `Check round progress at: https://${hre.network.name}-systems-explorer.flare.network/voting-round/${roundId}?tab=fdc\n`,
     );
     roundIds.set(source, roundId);
   }

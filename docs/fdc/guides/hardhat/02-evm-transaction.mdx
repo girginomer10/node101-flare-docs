@@ -280,7 +280,7 @@ async function submitAttestationRequest(abiEncodedRequest: string) {
 
   const roundId = await calculateRoundId(transaction);
   console.log(
-    `Check round progress at: https://${hre.network.name}-systems-explorer.flare.rocks/voting-round/${roundId}?tab=fdc\n`,
+    `Check round progress at: https://${hre.network.name}-systems-explorer.flare.network/voting-round/${roundId}?tab=fdc\n`,
   );
   return roundId;
 }
@@ -381,8 +381,8 @@ To retrieve the data and proof, we must first wait for the voting round in which
 this takes no more than 180 seconds, but is on average much less.
 After the round has been finalized, we post a request to a DA Layer provider.
 
-We can check if the request was submitted successfully on the [AttestationRequests](https://coston2-systems-explorer.flare.rocks/attestation-request) page on the Flare Systems Explorer website.
-To check if the round has been finalized, go to [Finalizations](https://coston2-systems-explorer.flare.rocks/finalizations) page.
+We can check if the request was submitted successfully on the [AttestationRequests](https://coston2-systems-explorer.flare.network/attestation-request) page on the Flare Systems Explorer website.
+To check if the round has been finalized, go to [Finalizations](https://coston2-systems-explorer.flare.network/finalizations) page.
 
 If you want to learn more about how the FDC protocol works, check [here](/fdc/overview).
 
