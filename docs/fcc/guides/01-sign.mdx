@@ -186,6 +186,7 @@ function sign(bytes calldata _message) external payable {
 :::tip[Customizing the contract]
 When building your own extension, change the `opType` and `opCommand` constants to match your use case.
 The same constants must appear in both the Solidity contract and your offchain handler code.
+`opType` strings beginning with `F_` are reserved for Flare system operations, so do not use that prefix.
 :::
 
 ## Offchain Handler

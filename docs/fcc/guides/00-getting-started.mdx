@@ -159,7 +159,11 @@ case dataFixed.OPType == teeutils.ToHash(config.OPTypeGreeting):
 ```
 
 :::warning
+
 Mismatch of the OPType or OPCommand strings is the most common cause of `unsupported op type` / `unsupported op command` responses.
+
+OPType strings beginning with `F_` are reserved for Flare system operations, so do not use that prefix for your own extension.
+
 :::
 
 ### Config Constants
@@ -391,7 +395,7 @@ If it passes, your Hello World extension is live against Coston2.
 
 ## Making It Your Own
 
-1. Choose OPType/OPCommand names that describe your operations.
+1. Choose OPType/OPCommand names that describe your operations, avoiding the reserved `F_` OPType prefix.
 2. Update Solidity constants and send functions; regenerate Go bindings if you change the ABI (`./scripts/generate-bindings.sh`).
 3. Implement handlers and types; register decoders.
 4. Update `tools/cmd/run-test/main.go` and re-run `./scripts/test.sh`.
