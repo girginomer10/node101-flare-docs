@@ -183,31 +183,31 @@ If the node gets stuck during bootstrap (or it takes far longer than the estimat
 ### CLI parameters
 
 These are some of the most relevant CLI parameters you can use.
-Read more about them in the [Avalanche documentation](https://build.avax.network/docs/nodes/configure/configs-flags).
+Read more about them in the [AvalancheGo configs and flags](https://github.com/ava-labs/avalanchego/blob/master/config/config.md) documentation.
 
 {/* prettier-ignore */}
-- [`--bootstrap-ips`](https://build.avax.network/docs/nodes/configure/configs-flags#--bootstrap-ips-string),
-  [`--bootstrap-ids`](https://build.avax.network/docs/nodes/configure/configs-flags#--bootstrap-ids-string):
+- [`--bootstrap-ips`](https://github.com/ava-labs/avalanchego/blob/master/config/config.md#bootstrapping),
+  [`--bootstrap-ids`](https://github.com/ava-labs/avalanchego/blob/master/config/config.md#bootstrapping):
   IP address and node ID of the peer used to connect to the rest of the network for bootstrapping. In the run command above, the bootstrap details are programmatically retrieved from the Flare bootstrap nodes upon startup. This is the recommended approach as the bootstrap node's IP and ID can rotate.
 
-- [`--http-host`](https://build.avax.network/docs/nodes/configure/configs-flags#--http-host-string): Use `--http-host=` (empty) to allow connections from other machines.
+- [`--http-host`](https://github.com/ava-labs/avalanchego/blob/master/config/config.md#http-server): Use `--http-host=` (empty) to allow connections from other machines.
 Otherwise, only connections from `localhost` are accepted.
 
-- [`--http-port`](https://build.avax.network/docs/nodes/configure/configs-flags#--http-port-int): The port through which the node will listen to API requests.
+- [`--http-port`](https://github.com/ava-labs/avalanchego/blob/master/config/config.md#http-server): The port through which the node will listen to API requests.
 The default value is `9650`.
 
-- [`--http-allowed-hosts`](https://build.avax.network/docs/nodes/configure/configs-flags#--http-allowed-hosts-string): Use `--http-allowed-hosts="*"` to allow connections from any machine.
+- [`--http-allowed-hosts`](https://github.com/ava-labs/avalanchego/blob/master/config/config.md#http-server): Use `--http-allowed-hosts="*"` to allow connections from any machine.
 Otherwise, only connections from `localhost` are accepted.
 
-- [`--staking-port`](https://build.avax.network/docs/nodes/configure/configs-flags#--staking-port-int): The port through which the network peers will connect to this node externally.
+- [`--staking-port`](https://github.com/ava-labs/avalanchego/blob/master/config/config.md#staking): The port through which the network peers will connect to this node externally.
 Having this port accessible from the internet is required for correct node operation.
 The default value is `9651`.
 
-- [`--db-dir`](https://build.avax.network/docs/nodes/configure/configs-flags#--db-dir-string-file-path): Directory where the database is stored, defaults to `~/.avalanchego/db`.
+- [`--db-dir`](https://github.com/ava-labs/avalanchego/blob/master/config/config.md#database): Directory where the database is stored, defaults to `~/.avalanchego/db`.
 Make sure to use a disk with enough space as recommended in the [hardware requirements](/run-node/system-requirements) page.
 For example, you can use this option to store the database on an external drive.
 
-- [`--chain-config-dir`](https://build.avax.network/docs/nodes/configure/configs-flags#--chain-config-dir-string): Optional JSON configuration file for using non-default values.
+- [`--chain-config-dir`](https://github.com/ava-labs/avalanchego/blob/master/config/config.md#chain-configuration): Optional JSON configuration file for using non-default values.
 
 #### Sample JSON configuration:
 
