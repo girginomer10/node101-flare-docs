@@ -50,7 +50,6 @@ Only a restricted subset of `jq` is supported for the `postProcessJq` filter to 
 |            Iteration | `.items[] \| .id`                                                                                                                                                                                                                                                                                                           |
 |       Arrays/objects | `[expr, expr]`, `{id: .id, name: .name}`                                                                                                                                                                                                                                                                                    |
 | Strings with interp. | `"Hello \(.name)"`                                                                                                                                                                                                                                                                                                          |
-|   Variables (scoped) | `(.a as $x \| $x + 1)`                                                                                                                                                                                                                                                                                                      |
 
 ### Allowed jq filter examples
 
@@ -69,6 +68,7 @@ def add(a; b): a + b;         # user function definitions
 .foo = 1                      # assignment/update operators (e.g. =, |=)
 recurse(.)                    # unbounded recursion
 reduce .[] as $x (0; . + $x)  # reduce
+.a as $x | $x + 1             # variable bindings ("as") are rejected
 inputs                        # streaming side-effect
 ```
 
