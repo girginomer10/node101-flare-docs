@@ -13,8 +13,8 @@ import (
 
 func FtsoV2Consumer() {
 	// FtsoV2 address (Flare Testnet Coston2)
-	// See https://dev.flare.network/ftso/solidity-reference
-	ftsoV2Address := common.HexToAddress("0x3d893C53D9e8056135C26C8c638B76C8b60Df726")
+	// See https://dev.flare.network/ftso/solidity-reference (this address can change; verify there)
+	ftsoV2Address := common.HexToAddress("0xC4e9c78EA53db782E28f28Fdf80BaF59336B304d")
 	rpcUrl := "https://coston2-api.flare.network/ext/C/rpc"
 	// Connect to an RPC node
 	client, _ := ethclient.Dial(rpcUrl)

@@ -4,8 +4,8 @@ import asyncio
 from web3 import AsyncHTTPProvider, AsyncWeb3
 
 # FtsoV2 address (Flare Testnet Coston2)
-# See https://dev.flare.network/ftso/solidity-reference
-FTSOV2_ADDRESS = "0x3d893C53D9e8056135C26C8c638B76C8b60Df726"
+# See https://dev.flare.network/ftso/solidity-reference (this address can change; verify there)
+FTSOV2_ADDRESS = "0xC4e9c78EA53db782E28f28Fdf80BaF59336B304d"
 RPC_URL = "https://coston2-api.flare.network/ext/C/rpc"
 FEED_IDS = [
     "0x01464c522f55534400000000000000000000000000",  # FLR/USD
