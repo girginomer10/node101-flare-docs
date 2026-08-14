@@ -125,7 +125,11 @@ const sidebars: SidebarsConfig = {
             type: "doc",
             id: "fxrp/oft/index",
           },
-          items: ["fxrp/oft/fassets-autoredeem", "fxrp/oft/fassets-automint"],
+          items: [
+            "fxrp/oft/fassets-autoredeem",
+            "fxrp/oft/fassets-bridge-ethereum",
+            "fxrp/oft/fassets-automint",
+          ],
         },
         {
           type: "category",
