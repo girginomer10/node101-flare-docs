@@ -4,8 +4,8 @@ import { Web3 } from "web3";
 import { interfaceToAbi } from "@flarenetwork/flare-periphery-contract-artifacts";
 
 // FtsoV2 address (Flare Testnet Coston2)
-// See https://dev.flare.network/ftso/solidity-reference
-const FTSOV2_ADDRESS = "0x3d893C53D9e8056135C26C8c638B76C8b60Df726";
+// See https://dev.flare.network/ftso/solidity-reference (this address can change; verify there)
+const FTSOV2_ADDRESS = "0xC4e9c78EA53db782E28f28Fdf80BaF59336B304d";
 const RPC_URL = "https://coston2-api.flare.network/ext/C/rpc";
 const FEED_IDS = [
   "0x01464c522f55534400000000000000000000000000", // FLR/USD
