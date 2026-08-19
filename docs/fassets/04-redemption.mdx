@@ -120,8 +120,10 @@ If the agent does not report the failed payment in time, anyone (including the e
     Two different proofs can be used:
 
     * Proof of invalid address, due to a wrong syntax or checksum, for example.
-    * Proof of blocked payment: Even if the address is valid, it might contain a contract that blocks the payment.
-        This can only occur on underlying networks that support smart contracts.
+    * Proof of blocked payment: Even if the address is valid, the payment can still be blocked for various reasons.
+
+        One important example is an XRPL redeemer who has enabled `asfRequireDest` on their account and then used a simple redeem request (`redeem` or `redeemAmount`) instead of [`redeemWithTag`](#redeem-with-tag).
+        Incoming payments then require a destination tag, but a simple redeem request does not include one, so the XRPL rejects the agent's payment.
 
         The agent must still try to pay, and if the payment is blocked, the agent can request this proof from the Flare Data Connector and present it to the FAssets system.
 
