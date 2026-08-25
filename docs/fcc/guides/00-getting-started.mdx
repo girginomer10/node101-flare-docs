@@ -79,6 +79,11 @@ sequenceDiagram
 You control steps that start and end the flow: the onchain `InstructionSender` smart contract and the Go action handlers.
 Attestation, signing, and message routing are handled by the TEE node and proxy.
 
+How those signatures work is split in two:
+
+- [TEE public and private keys](/fcc/tee-keys) — how the machine signs results and decrypts secrets.
+- [Data providers and cosigners](/fcc/data-providers) — who may send the TEE work.
+
 ## Architecture
 
 The extension stack runs as three Docker services:
