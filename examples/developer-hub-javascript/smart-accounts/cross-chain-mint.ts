@@ -1,9 +1,19 @@
-import { encodeFunctionData, erc20Abi, formatUnits, type Address } from "viem";
+import {
+  encodeFunctionData,
+  erc20Abi,
+  formatUnits,
+  pad,
+  type Address,
+} from "viem";
+import { EndpointId } from "@layerzerolabs/lz-definitions";
 import { Client, Wallet, xrpToDrops } from "xrpl";
+import { Options } from "@layerzerolabs/lz-v2-utilities";
 import { account, publicClient, sepoliaPublicClient } from "./utils/client";
 import {
+  executeDirectMintingWithData,
+  findUserOperationExecuted,
   getPersonalAccountAddress,
-  sendMemoFieldInstruction,
+  sendHashInstruction,
   type Call,
 } from "./utils/smart-accounts";
 import {
@@ -11,14 +21,14 @@ import {
   getFxrpDecimals,
 } from "./utils/fassets";
 import { getFxrpAddress } from "./utils/flare-contract-registry";
-import { abi as fxrpLzBridgeShimAbi } from "./abis/FxrpLzBridgeShim";
 import { abi as fxrpOftAbi } from "./abis/FXRPOFT";
+import type { SendParam } from "./types";
 
 const CONFIG = {
-  FXRP_LZ_BRIDGE_SHIM: (process.env.FXRP_LZ_BRIDGE_SHIM ??
-    "0x525CCe1C6d053B0e7f41A2011B536aA992200Be0") as Address,
+  COSTON2_OFT_ADAPTER: "0xCd3d2127935Ae82Af54Fc31cCD9D3440dbF46639" as Address,
   SEPOLIA_FXRP_OFT: process.env.SEPOLIA_FXRP_OFT as Address | undefined,
-  FXRP_MINT_AMOUNT_XRP: 10,
+  SEPOLIA_EID: EndpointId.SEPOLIA_V2_TESTNET,
+  EXECUTOR_GAS: 200_000,
 } as const;
 
 const SEPOLIA_ARRIVAL_TIMEOUT_MS = 10 * 60 * 1000;
@@ -55,53 +65,67 @@ async function waitForOftReceivedOnSepolia({
   );
 }
 
-// For this example to work, you first need to faucet C2FLR to your personal account address.
-// FxrpLzBridgeShim resolves the FXRP token address on-chain from the AssetManagerFXRP
-// registry entry, so only the route-specific params need to be passed in at deploy time:
-//   oftAdapter=0xCd3d2127935Ae82Af54Fc31cCD9D3440dbF46639
-//   dstEid=40161 (SEPOLIA_V2_TESTNET)
-//   executorGas=200000
+// NOTE: For this example to work, you first need to faucet C2FLR to your
+// personal account address.
+// 0xFE is a three-step protocol; this script runs all three steps inline.
+//
+// The personal account drives the OFT Adapter directly - 0xFE's 42-byte memo
+// removes the calldata-size constraint that the memo-field flow needs a shim
+// to satisfy.
+//
+// The total call.value (the LayerZero nativeFee) is forwarded as msg.value in
+// step 2, so it flows AssetManager -> MasterAccountController -> PersonalAccount
+// -> OFT Adapter. Unused native fee is refunded by the adapter to the personal
+// account (the refund address we pass to `send`).
 async function main() {
+  const fxrpMintAmountXrp = 10;
+
   if (!CONFIG.SEPOLIA_FXRP_OFT) {
     throw new Error(
       "SEPOLIA_FXRP_OFT env var is required (address of the FXRP OFT on Sepolia)",
     );
   }
-  const shim = CONFIG.FXRP_LZ_BRIDGE_SHIM;
   const sepoliaOft = CONFIG.SEPOLIA_FXRP_OFT;
 
   const xrplClient = new Client(process.env.XRPL_TESTNET_RPC_URL!);
   const xrplWallet = Wallet.fromSeed(process.env.XRPL_SEED!);
   const recipient = account.address;
 
-  const [
-    personalAccount,
-    fxrpAddress,
-    fxrpDecimals,
-    paymentAmountXrp,
-    memoOnlyAmountXrp,
-  ] = await Promise.all([
-    getPersonalAccountAddress(xrplWallet.address),
-    getFxrpAddress(),
-    getFxrpDecimals(),
-    computeDirectMintingPaymentAmountXrp({
-      netMintAmountXrp: CONFIG.FXRP_MINT_AMOUNT_XRP,
-    }),
-    computeDirectMintingPaymentAmountXrp({ netMintAmountXrp: 0 }),
-  ]);
+  const [personalAccount, fxrpAddress, fxrpDecimals, paymentAmountXrp] =
+    await Promise.all([
+      getPersonalAccountAddress(xrplWallet.address),
+      getFxrpAddress(),
+      getFxrpDecimals(),
+      computeDirectMintingPaymentAmountXrp({
+        netMintAmountXrp: fxrpMintAmountXrp,
+      }),
+    ]);
 
-  const amountToBridge = BigInt(xrpToDrops(CONFIG.FXRP_MINT_AMOUNT_XRP));
+  const amountToBridge = BigInt(xrpToDrops(fxrpMintAmountXrp));
+  const extraOptions = Options.newOptions()
+    .addExecutorLzReceiveOption(CONFIG.EXECUTOR_GAS, 0)
+    .toHex() as `0x${string}`;
+  const sendParam: SendParam = {
+    dstEid: CONFIG.SEPOLIA_EID,
+    to: pad(recipient, { size: 32 }),
+    amountLD: amountToBridge,
+    minAmountLD: amountToBridge,
+    extraOptions,
+    composeMsg: "0x",
+    oftCmd: "0x",
+  };
 
-  const nativeFee = await publicClient.readContract({
-    address: shim,
-    abi: fxrpLzBridgeShimAbi,
-    functionName: "quote",
-    args: [amountToBridge, recipient],
+  const messagingFee = await publicClient.readContract({
+    address: CONFIG.COSTON2_OFT_ADAPTER,
+    abi: fxrpOftAbi,
+    functionName: "quoteSend",
+    args: [sendParam, false],
   });
+  const nativeFee = messagingFee.nativeFee;
 
   console.log("Personal account:", personalAccount);
   console.log("FXRP token:", fxrpAddress);
-  console.log("Bridge shim:", shim);
+  console.log("OFT Adapter (Coston2):", CONFIG.COSTON2_OFT_ADAPTER);
 
   console.log("\nCross-chain mint details:");
   console.log("From (XRPL):", xrplWallet.address);
@@ -115,57 +139,60 @@ async function main() {
   console.log("XRPL payment amount (mint + fees):", paymentAmountXrp, "XRP");
   console.log("LayerZero native fee:", formatUnits(nativeFee, 18), "C2FLR");
 
-  // XRPL caps each memo at ~1024 bytes. Even with the thin shim calldata, a
-  // combined approve+bridge UserOperation overflows (~1098 bytes), so split
-  // into two memo-field instructions.
-  const approveShimCustomInstruction: Call[] = [
+  const customInstruction: Call[] = [
     {
       target: fxrpAddress,
       value: 0n,
       data: encodeFunctionData({
         abi: erc20Abi,
         functionName: "approve",
-        args: [shim, amountToBridge],
+        args: [CONFIG.COSTON2_OFT_ADAPTER, amountToBridge],
       }),
     },
-  ];
-
-  const bridgeCustomInstruction: Call[] = [
     {
-      target: shim,
+      target: CONFIG.COSTON2_OFT_ADAPTER,
       value: nativeFee,
       data: encodeFunctionData({
-        abi: fxrpLzBridgeShimAbi,
-        functionName: "bridge",
-        args: [amountToBridge, recipient],
+        abi: fxrpOftAbi,
+        functionName: "send",
+        args: [sendParam, { nativeFee, lzTokenFee: 0n }, personalAccount],
       }),
     },
   ];
 
-  await sendMemoFieldInstruction({
-    label: "mint-and-approve-shim",
-    customInstruction: approveShimCustomInstruction,
+  // Sample the Sepolia block height before the bridge runs so we don't miss
+  // the OFTReceived event if the LayerZero delivery is unusually fast.
+  const startSepoliaBlock = await sepoliaPublicClient.getBlockNumber();
+
+  // --- 1. USER SIDE ---------------------------------------------------------
+  const userSide = await sendHashInstruction({
+    label: "mint-approve-and-bridge",
+    customInstruction,
     amountXrp: paymentAmountXrp,
     personalAccount,
     xrplClient,
     xrplWallet,
   });
 
-  const startSepoliaBlock = await sepoliaPublicClient.getBlockNumber();
-
-  const bridgeEvent = await sendMemoFieldInstruction({
-    label: "bridge",
-    customInstruction: bridgeCustomInstruction,
-    amountXrp: memoOnlyAmountXrp,
-    personalAccount,
+  // --- 2. EXECUTOR SIDE ------------------------------------------------------
+  const { hash: executorTxHash, receipt } = await executeDirectMintingWithData({
+    xrplTransactionHash: userSide.xrplTransactionHash,
+    data: userSide.data,
+    value: userSide.totalCallValue,
     xrplClient,
-    xrplWallet,
+    label: "mint-approve-and-bridge",
   });
 
-  console.log("\nTrack your cross-chain transaction:");
-  console.log(
-    `https://testnet.layerzeroscan.com/tx/${bridgeEvent.transactionHash}`,
+  // --- 3. CONFIRMATION --------------------------------------------------------
+  const event = findUserOperationExecuted(
+    receipt,
+    personalAccount,
+    userSide.nonce,
   );
+  console.log("UserOperationExecuted:", event, "\n");
+
+  console.log("\nTrack your cross-chain transaction:");
+  console.log(`https://testnet.layerzeroscan.com/tx/${executorTxHash}`);
   console.log(
     "\nWaiting for FXRP to arrive on Sepolia (this can take a few minutes)...",
   );
