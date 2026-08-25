@@ -32,8 +32,10 @@ It also delivers two built-in system applications: **Protocol Managed Wallets (P
 - **Cross-Chain Transaction Signing:** Protocol Managed Wallets enable programmable assembly and signing of transactions on external blockchains (XRPL, BTC) through smart contract calls on Flare.
 - **Fast Data Attestation:** A new TEE-based FDC enables rapid attestation of external data, where TEE machine signatures serve as proof of data provider consensus.
 - **Extensible Architecture:** Developers can build custom Flare Compute Extensions that run arbitrary computations within TEE machines, with results verifiable onchain.
-- **Decentralized Consensus:** Instructions are relayed to TEE machines only after reaching a 50%+ signature weight from Flare's data providers, leveraging the same [signing policy](/network/fsp) used across the Flare Systems Protocol.
 - **Private Key Management:** TEE machines securely generate, store, back up, and restore private keys, enabling multi-signature wallet operations across blockchains.
+  See [TEE public and private keys](/fcc/tee-keys).
+- **Decentralized Consensus:** Instructions are relayed to TEE machines only after reaching a 50%+ signature weight from Flare's data providers, leveraging the same [signing policy](/network/fsp) used across the Flare Systems Protocol.
+  See [Data providers and cosigners](/fcc/data-providers).
 
 :::tip[Interested in learning more?]
 For a detailed explanation of the FCC mechanism, read the [FCC whitepaper](/pdf/whitepapers/20260706-FlareConfidentialCompute.pdf).
@@ -86,10 +88,12 @@ The system comprises three core components:
 2. **Data Providers and Cosigners** function as instruction relayers.
    They parse instruction events from smart contracts, augment them with external data, sign them, and transmit them to TEE machines.
    Cosigners provide an additional layer of authorization for sensitive operations like payments and key management.
+   Details: [Data providers and cosigners](/fcc/data-providers).
 
 3. **TEE Machines** verify that instructions carry adequate consensus (threshold signature weight) from data providers and cosigners.
    Upon successful verification, the TEE machine executes the corresponding computation and signs the result with a relevant private key.
    Results include signed payment transactions for external blockchains, signed attestations, or other computation outputs usable within smart contracts.
+   Details: [TEE public and private keys](/fcc/tee-keys).
 
 ## Flare Compute Extensions
 
@@ -181,3 +185,14 @@ Data providers parse these requests, perform attestations using their existing d
 
 Each TEE machine that receives a threshold weight of signatures from data providers and cosigners signs the attestation response with its TEE identity key.
 Since TEE machine identities are verified on-chain during registration, their signatures serve as proof of data provider consensus usable within smart contracts.
+
+:::tip[What's next]
+
+Learn how FCC signing works:
+
+- [TEE public and private keys](/fcc/tee-keys) — identity keypair, ECDSA, ECIES, and decrypting inside the enclave.
+- [Data providers and cosigners](/fcc/data-providers) — who may send the TEE work, signing weight, and the extra authorization gate.
+
+Then build an extension with [Build Your First Extension](/fcc/guides/getting-started), or the [Private Key Extension](/fcc/guides/sign-extension) example.
+
+:::

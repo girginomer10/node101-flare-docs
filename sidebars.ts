@@ -235,6 +235,8 @@ const sidebars: SidebarsConfig = {
       collapsed: true,
       link: { type: "doc", id: "fcc/overview" },
       items: [
+        "fcc/tee-keys",
+        "fcc/data-providers",
         {
           type: "category",
           label: "Developer Guides",
