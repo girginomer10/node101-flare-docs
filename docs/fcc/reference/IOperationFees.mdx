@@ -1,0 +1,160 @@
+---
+title: IOperationFees
+description: Per-instruction fees for TEE operations.
+keywords: [fcc, tee, solidity, flare-confidential-compute, flare-network]
+sidebar_position: 5
+---
+
+Public interface for `OperationFeesFacet` on the [`FlareTeeManager`](/fcc/reference/IFlareTeeManager) diamond.
+
+Each instruction sent through `IInstructions.sendInstructions` charges a **per-operation, per-machine** fee:
+
+```
+fee = perOperationFee(opType, opCommand) × number of TEE ids
+```
+
+The `getOperationFee` function returns a governance override for that `(opType, opCommand)` pair, or the global `defaultFee` if no override is set.
+The instructions sender attaches `msg.value` on `sendInstructions`; underpayment reverts with `FeeTooLow` error.
+Call `calculateFeeByTeeIds` function first and pay that amount.
+
+This ABI is read-only.
+Governance sets the schedule through internal setters on `OperationFeesFacet` (`setDefaultFee`, `setOperationFees`).
+
+Inherits shared [`ITeeCommonErrors`](/fcc/reference/ITeeCommonErrors).
+
+## Functions
+
+### `getDefaultFee`
+
+Returns the default fee.
+
+```solidity
+function getDefaultFee()
+        external view
+        returns (uint256)
+```
+
+**Returns**
+
+- `uint256`: The default fee.
+
+### `getOperationFee`
+
+Returns the operation's fee.
+
+```solidity
+function getOperationFee(
+        bytes32 _opType,
+        bytes32 _opCommand
+    )
+        external view
+        returns (uint256 _operationFee)
+```
+
+**Parameters**
+
+- `_opType`: The operation type.
+- `_opCommand`: The operation command.
+
+**Returns**
+
+- `_operationFee`: The fee.
+  If no override is stored for the pair, this is the default fee.
+
+### `calculateFeeByTeeIds`
+
+Calculates the fee for the operation and list of tee ids that will receive instructions.
+
+```solidity
+function calculateFeeByTeeIds(
+        bytes32 _opType,
+        bytes32 _opCommand,
+        address[] memory _teeIds
+    )
+        external view
+        returns (uint256 _fee)
+```
+
+**Parameters**
+
+- `_opType`: The operation type.
+- `_opCommand`: The operation command.
+- `_teeIds`: The list of tee ids that will receive instructions.
+
+**Returns**
+
+- `_fee`: The calculated fee.
+
+### `calculateFeeByWalletId`
+
+Calculates the fee for an operation on the given wallet, resolving the receiving tee ids the same way `pay`/`reissue` do (deduplicated PRODUCTION tee ids).
+Reverts with `ThresholdNotMet` if the wallet does not have enough available keys.
+
+```solidity
+function calculateFeeByWalletId(
+        bytes32 _walletId,
+        bytes32 _opType,
+        bytes32 _opCommand
+    )
+        external view
+        returns (uint256 _fee)
+```
+
+**Parameters**
+
+- `_walletId`: The wallet id.
+- `_opType`: The operation type.
+- `_opCommand`: The operation command.
+
+**Returns**
+
+- `_fee`: The calculated fee.
+
+## Events
+
+### `DefaultFeeSet`
+
+Event emitted when default fee is set.
+
+```solidity
+event DefaultFeeSet(
+        uint256 defaultFee
+    )
+```
+
+**Parameters**
+
+- `defaultFee` (`uint256 defaultFee`)
+
+### `OperationFeesSet`
+
+Event emitted when operation fees are set.
+
+```solidity
+event OperationFeesSet(
+        bytes32[] opTypes,
+        bytes32[] opCommands,
+        uint256[] fees
+    )
+```
+
+**Parameters**
+
+- `opTypes` (`bytes32[] opTypes`)
+- `opCommands` (`bytes32[] opCommands`)
+- `fees` (`uint256[] fees`)
+
+## Errors
+
+Facet-specific errors are listed here.
+The interface also inherits shared [`ITeeCommonErrors`](/fcc/reference/ITeeCommonErrors).
+
+### `DefaultFeeZero`
+
+The global default fee cannot be `0`.
+Governance `setDefaultFee` and diamond init both reject a zero value.
+A per-operation override of `0` means "use the default", so the default itself must stay positive.
+
+```solidity
+error DefaultFeeZero()
+```

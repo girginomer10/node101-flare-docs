@@ -537,6 +537,10 @@
     {
       "name": "MasterAccountController",
       "address": "0x434936d47503353f06750Db1A444DBDC5F0AD37c"
+    },
+    {
+      "name": "FlareTeeManager",
+      "address": "0x1a9C4A0f9D76c0b1D91d22E24E573a9b377618aE"
     }
   ],
   "SongbirdCanaryNetwork": [
@@ -941,6 +945,10 @@
     {
       "name": "FeeCalculator",
       "address": "0x08e0CBdc9173e537208CEAd8c38f263517f54F22"
+    },
+    {
+      "name": "FlareTeeManager",
+      "address": "0xc4885998f5D792ed88C5Af7a3AaCBe333f017658"
     }
   ]
 }

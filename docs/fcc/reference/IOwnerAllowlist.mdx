@@ -1,0 +1,516 @@
+---
+title: IOwnerAllowlist
+description: Allowlists for extension, TEE machine, and wallet project owners.
+keywords: [fcc, tee, solidity, flare-confidential-compute, flare-network]
+sidebar_position: 6
+---
+
+Public interface for `OwnerAllowlistFacet` on the [`FlareTeeManager`](/fcc/reference/IFlareTeeManager) diamond.
+
+Three separate allowlists gate who may own FCC resources.
+None of them update automatically: Flare governance or the extension owner must do it manually.
+
+| Allowlist                           | Who updates it   | What it gates                                                                                            |
+| ----------------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------- |
+| Global extension owners             | Flare governance | [`IExtensionManager.register`](/fcc/reference/IExtensionManager) and public extension ownership transfer |
+| Per-extension TEE machine owners    | Extension owner  | [`IMachineManager.register`](/fcc/reference/IMachineManager) and machine ownership transfer              |
+| Per-extension wallet project owners | Extension owner  | Wallet project creation and ownership transfer                                                           |
+
+Each allowlist also has an **allow-all** flag.
+While that flag is true, the address list is bypassed and any caller is treated as allowed.
+The `disallowAll*` turns the list back on; it does not wipe the stored addresses.
+
+Inherits shared [`ITeeCommonErrors`](/fcc/reference/ITeeCommonErrors).
+
+## Functions
+
+### `addAllowedExtensionOwners`
+
+Adds a list of allowed extension owners to the global allowlist.
+Addresses on this list (or any address when allExtensionOwnersAllowed is true) may call IExtensionManager.register() and become the proposed/new owner of a public extension.
+Emits AllowedExtensionOwnersAdded event.
+
+```solidity
+function addAllowedExtensionOwners(
+        address[] calldata _owners
+    )
+        external
+```
+
+**Parameters**
+
+- `_owners`: The list of addresses to add to the allowlist.
+  Can only be called by the Flare governance address.
+
+### `removeAllowedExtensionOwners`
+
+Removes a list of allowed extension owners from the global allowlist.
+Emits AllowedExtensionOwnersRemoved event.
+
+```solidity
+function removeAllowedExtensionOwners(
+        address[] calldata _owners
+    )
+        external
+```
+
+**Parameters**
+
+- `_owners`: The list of addresses to remove from the allowlist.
+  Can only be called by the Flare governance address.
+
+### `allowAllExtensionOwners`
+
+Opens public extension creation to any caller (the allowlist is bypassed while this flag is true).
+Emits AllExtensionOwnersAllowed event.
+Can only be called by the Flare governance address.
+
+```solidity
+function allowAllExtensionOwners()
+        external
+```
+
+### `disallowAllExtensionOwners`
+
+Re-enables the global extension-owner allowlist (the allowlist is no longer bypassed).
+Emits AllExtensionOwnersDisallowed event.
+Can only be called by the Flare governance address.
+
+```solidity
+function disallowAllExtensionOwners()
+        external
+```
+
+### `addAllowedTeeMachineOwners`
+
+Adds a list of allowed TEE machine owners on the specified extension.
+Emits AllowedTeeMachineOwnersAdded event.
+
+```solidity
+function addAllowedTeeMachineOwners(
+        uint256 _extensionId,
+        address[] calldata _owners
+    )
+        external
+```
+
+**Parameters**
+
+- `_extensionId`: The id of the extension.
+- `_owners`: The list of addresses to add to the allowlist.
+  Can only be called by the extension owner.
+
+### `removeAllowedTeeMachineOwners`
+
+Removes a list of allowed TEE machine owners on the specified extension.
+Emits AllowedTeeMachineOwnersRemoved event.
+
+```solidity
+function removeAllowedTeeMachineOwners(
+        uint256 _extensionId,
+        address[] calldata _owners
+    )
+        external
+```
+
+**Parameters**
+
+- `_extensionId`: The id of the extension.
+- `_owners`: The list of addresses to remove from the allowlist.
+  Can only be called by the extension owner.
+
+### `addAllowedTeeWalletProjectOwners`
+
+Adds a list of allowed TEE wallet project owners on the specified extension.
+Emits AllowedTeeWalletProjectOwnersAdded event.
+
+```solidity
+function addAllowedTeeWalletProjectOwners(
+        uint256 _extensionId,
+        address[] calldata _owners
+    )
+        external
+```
+
+**Parameters**
+
+- `_extensionId`: The id of the extension.
+- `_owners`: The list of addresses to add to the allowlist.
+  Can only be called by the extension owner.
+
+### `removeAllowedTeeWalletProjectOwners`
+
+Removes a list of allowed TEE wallet project owners on the specified extension.
+Emits AllowedTeeWalletProjectOwnersRemoved event.
+
+```solidity
+function removeAllowedTeeWalletProjectOwners(
+        uint256 _extensionId,
+        address[] calldata _owners
+    )
+        external
+```
+
+**Parameters**
+
+- `_extensionId`: The id of the extension.
+- `_owners`: The list of addresses to remove from the allowlist.
+  Can only be called by the extension owner.
+
+### `allowAllTeeMachineOwners`
+
+Allows all addresses to be TEE machine owners on the specified extension.
+Emits AllTeeMachineOwnersAllowed event.
+
+```solidity
+function allowAllTeeMachineOwners(
+        uint256 _extensionId
+    )
+        external
+```
+
+**Parameters**
+
+- `_extensionId`: The id of the extension.
+  Can only be called by the extension owner.
+
+### `disallowAllTeeMachineOwners`
+
+Disallows all addresses to be TEE machine owners on the specified extension.
+Emits AllTeeMachineOwnersDisallowed event.
+
+```solidity
+function disallowAllTeeMachineOwners(
+        uint256 _extensionId
+    )
+        external
+```
+
+**Parameters**
+
+- `_extensionId`: The id of the extension.
+  Can only be called by the extension owner.
+
+### `allowAllTeeWalletProjectOwners`
+
+Allows all addresses to be TEE wallet project owners on the specified extension.
+Emits AllTeeWalletProjectOwnersAllowed event.
+
+```solidity
+function allowAllTeeWalletProjectOwners(
+        uint256 _extensionId
+    )
+        external
+```
+
+**Parameters**
+
+- `_extensionId`: The id of the extension.
+  Can only be called by the extension owner.
+
+### `disallowAllTeeWalletProjectOwners`
+
+Disallows all addresses to be TEE wallet project owners on the specified extension.
+Emits AllTeeWalletProjectOwnersDisallowed event.
+
+```solidity
+function disallowAllTeeWalletProjectOwners(
+        uint256 _extensionId
+    )
+        external
+```
+
+**Parameters**
+
+- `_extensionId`: The id of the extension.
+  Can only be called by the extension owner.
+
+### `getAllowedExtensionOwners`
+
+Returns the list of allowed extension owners (global allowlist).
+
+```solidity
+function getAllowedExtensionOwners()
+        external view
+        returns (address[] memory _allowedOwners)
+```
+
+**Returns**
+
+- `_allowedOwners`: The list of allowed extension owners.
+
+### `isAllowedExtensionOwner`
+
+Returns true if `_owner` is allowed to become a public extension owner.
+
+```solidity
+function isAllowedExtensionOwner(
+        address _owner
+    )
+        external view
+        returns (bool _isAllowed)
+```
+
+**Parameters**
+
+- `_owner`: The address to check.
+
+**Returns**
+
+- `_isAllowed`: True if `_owner` is on the allowlist or allExtensionOwnersAllowed is true.
+
+### `allExtensionOwnersAllowed`
+
+Returns true if the global extension-owner allowlist is bypassed (any address can become a public extension owner).
+
+```solidity
+function allExtensionOwnersAllowed()
+        external view
+        returns (bool _allAllowed)
+```
+
+**Returns**
+
+- `_allAllowed`: True if the allowlist is bypassed.
+
+### `getAllowedTeeMachineOwners`
+
+Returns the list of allowed TEE machine owners on the specified extension.
+
+```solidity
+function getAllowedTeeMachineOwners(
+        uint256 _extensionId
+    )
+        external view
+        returns (address[] memory _allowedOwners)
+```
+
+**Parameters**
+
+- `_extensionId`: The id of the extension.
+
+**Returns**
+
+- `_allowedOwners`: The list of allowed TEE machine owners.
+
+### `getAllowedTeeWalletProjectOwners`
+
+Returns the list of allowed TEE wallet project owners on the specified extension.
+
+```solidity
+function getAllowedTeeWalletProjectOwners(
+        uint256 _extensionId
+    )
+        external view
+        returns (address[] memory _allowedOwners)
+```
+
+**Parameters**
+
+- `_extensionId`: The id of the extension.
+
+**Returns**
+
+- `_allowedOwners`: The list of allowed TEE wallet project owners.
+
+### `isAllowedTeeMachineOwner`
+
+Returns true if the owner is allowed to own a TEE machine on the specified extension.
+
+```solidity
+function isAllowedTeeMachineOwner(
+        uint256 _extensionId,
+        address _owner
+    )
+        external view
+        returns (bool _isAllowed)
+```
+
+**Parameters**
+
+- `_extensionId`: The id of the extension.
+- `_owner`: The address of the owner.
+
+**Returns**
+
+- `_isAllowed`: True if the owner is allowed, false otherwise.
+
+### `isAllowedTeeWalletProjectOwner`
+
+Returns true if the owner is allowed to own a TEE wallet project on the specified extension.
+
+```solidity
+function isAllowedTeeWalletProjectOwner(
+        uint256 _extensionId,
+        address _owner
+    )
+        external view
+        returns (bool _isAllowed)
+```
+
+**Parameters**
+
+- `_extensionId`: The id of the extension.
+- `_owner`: The address of the owner.
+
+**Returns**
+
+- `_isAllowed`: True if the owner is allowed, false otherwise.
+
+### `allTeeMachineOwnersAllowed`
+
+Returns true if all addresses are allowed to own a TEE machine on the specified extension.
+
+```solidity
+function allTeeMachineOwnersAllowed(
+        uint256 _extensionId
+    )
+        external view
+        returns (bool _allAllowed)
+```
+
+**Parameters**
+
+- `_extensionId`: The id of the extension.
+
+**Returns**
+
+- `_allAllowed`: True if all addresses are allowed, false otherwise.
+
+### `allTeeWalletProjectOwnersAllowed`
+
+Returns true if all addresses are allowed to own a TEE wallet project on the specified extension.
+
+```solidity
+function allTeeWalletProjectOwnersAllowed(
+        uint256 _extensionId
+    )
+        external view
+        returns (bool _allAllowed)
+```
+
+**Parameters**
+
+- `_extensionId`: The id of the extension.
+
+**Returns**
+
+- `_allAllowed`: True if all addresses are allowed, false otherwise.
+
+## Events
+
+### `AllowedExtensionOwnersAdded`
+
+```solidity
+event AllowedExtensionOwnersAdded(address[] owners)
+```
+
+**Parameters**
+
+- `owners` (`address[] owners`)
+
+### `AllowedExtensionOwnersRemoved`
+
+```solidity
+event AllowedExtensionOwnersRemoved(address[] owners)
+```
+
+**Parameters**
+
+- `owners` (`address[] owners`)
+
+### `AllExtensionOwnersAllowed`
+
+```solidity
+event AllExtensionOwnersAllowed()
+```
+
+### `AllExtensionOwnersDisallowed`
+
+```solidity
+event AllExtensionOwnersDisallowed()
+```
+
+### `AllowedTeeMachineOwnersAdded`
+
+```solidity
+event AllowedTeeMachineOwnersAdded(uint256 indexed extensionId, address[] owners)
+```
+
+**Parameters**
+
+- `extensionId` (`uint256 indexed extensionId`)
+- `owners` (`address[] owners`)
+
+### `AllowedTeeMachineOwnersRemoved`
+
+```solidity
+event AllowedTeeMachineOwnersRemoved(uint256 indexed extensionId, address[] owners)
+```
+
+**Parameters**
+
+- `extensionId` (`uint256 indexed extensionId`)
+- `owners` (`address[] owners`)
+
+### `AllowedTeeWalletProjectOwnersAdded`
+
+```solidity
+event AllowedTeeWalletProjectOwnersAdded(uint256 indexed extensionId, address[] owners)
+```
+
+**Parameters**
+
+- `extensionId` (`uint256 indexed extensionId`)
+- `owners` (`address[] owners`)
+
+### `AllowedTeeWalletProjectOwnersRemoved`
+
+```solidity
+event AllowedTeeWalletProjectOwnersRemoved(uint256 indexed extensionId, address[] owners)
+```
+
+**Parameters**
+
+- `extensionId` (`uint256 indexed extensionId`)
+- `owners` (`address[] owners`)
+
+### `AllTeeMachineOwnersAllowed`
+
+```solidity
+event AllTeeMachineOwnersAllowed(uint256 indexed extensionId)
+```
+
+**Parameters**
+
+- `extensionId` (`uint256 indexed extensionId`)
+
+### `AllTeeMachineOwnersDisallowed`
+
+```solidity
+event AllTeeMachineOwnersDisallowed(uint256 indexed extensionId)
+```
+
+**Parameters**
+
+- `extensionId` (`uint256 indexed extensionId`)
+
+### `AllTeeWalletProjectOwnersAllowed`
+
+```solidity
+event AllTeeWalletProjectOwnersAllowed(uint256 indexed extensionId)
+```
+
+**Parameters**
+
+- `extensionId` (`uint256 indexed extensionId`)
+
+### `AllTeeWalletProjectOwnersDisallowed`
+
+```solidity
+event AllTeeWalletProjectOwnersDisallowed(uint256 indexed extensionId)
+```
+
+**Parameters**
+
+- `extensionId` (`uint256 indexed extensionId`)

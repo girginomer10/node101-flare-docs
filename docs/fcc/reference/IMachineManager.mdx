@@ -1,0 +1,692 @@
+---
+title: IMachineManager
+description: TEE machine registration and lifecycle.
+keywords: [fcc, tee, solidity, flare-confidential-compute, flare-network]
+sidebar_position: 3
+---
+
+Public interface for `MachineManagerFacet` on the [`FlareTeeManager`](/fcc/reference/IFlareTeeManager) diamond.
+
+A TEE machine is identified by `teeId` (the identity address whose private key stays in the enclave).
+Read more about the TEE public and private keys in the [TEE public and private keys](/fcc/tee-keys) guide.
+An allowlisted machine owner calls `register` with attested machine data; the call also triggers an availability check.
+The owner (or a valid availability proof) later moves the machine `INITIALIZED → PRODUCTION` with `toProduction`.
+
+Status is not automatic: `pause`, `ban`, and `unban` are explicit calls.
+The `getRandomTeeIds` function is the usual way an instructions sender picks machines for `IInstructions.sendInstructions`.
+
+Inherits shared [`ITeeCommonErrors`](/fcc/reference/ITeeCommonErrors).
+
+## Constants
+
+### `REG_OP_TYPE`
+
+System instruction `opType` for TEE registration and attestation (`F_REG`).
+The [`IVerification.requestTeeAttestation`](/fcc/reference/IVerification) function sends an instruction with this type and command `TEE_ATTESTATION`.
+The `opType` strings beginning with `F_` are reserved for Flare system operations.
+
+```solidity
+bytes32 constant REG_OP_TYPE = bytes32("F_REG");
+```
+
+### `TEE_MACHINE_REGISTER`
+
+Domain prefix for the payload the TEE identity key signs at `register`.
+The signed message is `prefix + chainId + keccak256(abi.encode(TeeMachineData))`.
+The recovered signer is the machine's `teeId`.
+The prefix separates this signature from other FCC signed payloads; `chainId` blocks cross-chain replay.
+
+```solidity
+bytes32 constant TEE_MACHINE_REGISTER = bytes32("TEE_MACHINE_REGISTER");
+```
+
+## Types
+
+### `TeeStatus`
+
+```solidity
+enum TeeStatus {
+        NONE,
+        INITIALIZED,
+        PRODUCTION,
+        SUSPENDED,
+        PAUSED,
+        BANNED
+    }
+```
+
+### `TeeMachineData`
+
+```solidity
+struct TeeMachineData {
+        uint256 extensionId;
+        address initialOwner;
+        bytes32 codeHash;
+        bytes32 platform;
+        PublicKey publicKey;
+        bytes32 governanceHash;
+    }
+```
+
+### `TeeMachine`
+
+```solidity
+struct TeeMachine {
+        address teeId;
+        address teeProxyId;
+        string url;
+    }
+```
+
+### `TeeMachineWithAttestationData`
+
+```solidity
+struct TeeMachineWithAttestationData {
+        address teeId;
+        address initialTeeId;
+        string url;
+        bytes32 codeHash;
+        bytes32 platform;
+    }
+```
+
+## Functions
+
+### `register`
+
+Register a new TEE machine.
+It also triggers availability check.
+Emits TeeMachineRegistered event.
+
+```solidity
+function register(
+        TeeMachineData calldata _teeMachineData,
+        Signature calldata _teeMachineDataSignature,
+        address _teeProxyId,
+        string calldata _url,
+        address _claimBackAddress
+    )
+        external payable
+```
+
+**Parameters**
+
+- `_teeMachineData`: The TEE machine data.
+- `_teeMachineDataSignature`: The TEE machine signature over the TEE machine data.
+- `_teeProxyId`: The TEE proxy id.
+- `_url`: The TEE machine URL (proxy URL).
+- `_claimBackAddress`: An address that can claim back the fee if the instructions are not executed (optional).
+  Can only be called by an allowlisted TEE machine owner.
+
+### `toProduction`
+
+Put a TEE machine into production.
+Emits TeeMachineStatusChanged event.
+
+```solidity
+function toProduction(
+        ITeeAvailabilityCheck.Proof calldata _proof
+    )
+        external
+```
+
+**Parameters**
+
+- `_proof`: The availability check proof.
+
+### `pause`
+
+Pause a TEE machine.
+Emits TeeMachineStatusChanged event.
+
+```solidity
+function pause(
+        address _teeId
+    )
+        external
+```
+
+**Parameters**
+
+- `_teeId`: The TEE machine id.
+
+### `pauseWithProof`
+
+Pause a TEE machine with proof.
+Emits TeeMachineStatusChanged event.
+
+```solidity
+function pauseWithProof(
+        ITeeAvailabilityCheck.Proof calldata _proof
+    )
+        external
+```
+
+**Parameters**
+
+- `_proof`: The availability check proof.
+
+### `ban`
+
+Ban a TEE machine - puts it into BANNED status.
+Emits TeeMachineStatusChanged event.
+
+```solidity
+function ban(
+        address _teeId
+    )
+        external
+```
+
+**Parameters**
+
+- `_teeId`: The TEE machine id.
+  Can only be called by the extension owner.
+
+### `unban`
+
+Unban a TEE machine - puts it into PAUSED status.
+Emits TeeMachineStatusChanged event.
+
+```solidity
+function unban(
+        address _teeId
+    )
+        external
+```
+
+**Parameters**
+
+- `_teeId`: The TEE machine id.
+  Can only be called by the extension owner.
+
+### `proposeNewOwner`
+
+Propose a new owner for a TEE machine.
+Emits NewOwnerProposed event.
+
+```solidity
+function proposeNewOwner(
+        address _teeId,
+        address _newOwner
+    )
+        external
+```
+
+**Parameters**
+
+- `_teeId`: The TEE machine id.
+- `_newOwner`: The new owner address.
+  Can only be called by the current TEE machine owner.
+
+### `confirmOwnership`
+
+Confirm the ownership of a TEE machine.
+Emits NewOwnerConfirmed event.
+
+```solidity
+function confirmOwnership(
+        address _teeId
+    )
+        external
+```
+
+**Parameters**
+
+- `_teeId`: The TEE machine id.
+  Can only be called by the proposed new owner.
+
+### `updateTeeMachineSettings`
+
+Update TEE machine settings.
+Put the TEE machine into PAUSED status if it was in PRODUCTION or SUSPENDED and emits TeeMachineStatusChanged event.
+Emits TeeMachineSettingsUpdated event.
+
+```solidity
+function updateTeeMachineSettings(
+        address _teeId,
+        address _teeProxyId,
+        string calldata _url
+    )
+        external
+```
+
+**Parameters**
+
+- `_teeId`: The TEE machine id.
+- `_teeProxyId`: The TEE proxy id.
+- `_url`: The TEE machine URL.
+  Can only be called by the TEE machine owner.
+
+### `getTeeMachineStatus`
+
+Get the status of a TEE machine.
+
+```solidity
+function getTeeMachineStatus(
+        address _teeId
+    )
+        external view
+        returns (TeeStatus)
+```
+
+**Parameters**
+
+- `_teeId`: The TEE machine id.
+
+**Returns**
+
+- `TeeStatus`: The status of the TEE machine.
+
+### `getTeeMachineOwner`
+
+Get the owner of a TEE machine.
+
+```solidity
+function getTeeMachineOwner(
+        address _teeId
+    )
+        external view
+        returns (address)
+```
+
+**Parameters**
+
+- `_teeId`: The TEE machine id.
+
+**Returns**
+
+- `address`: The owner address.
+
+### `getInitialSigningPolicyId`
+
+Get initial signing policy id of a TEE machine.
+
+```solidity
+function getInitialSigningPolicyId(
+        address _teeId
+    )
+        external view
+        returns (uint32)
+```
+
+**Parameters**
+
+- `_teeId`: The TEE machine id.
+
+**Returns**
+
+- `uint32`: The initial signing policy id.
+
+### `getTeeMachine`
+
+Get TEE machine basic data.
+
+```solidity
+function getTeeMachine(
+        address _teeId
+    )
+        external view
+        returns (TeeMachine memory)
+```
+
+**Parameters**
+
+- `_teeId`: The TEE machine id.
+
+**Returns**
+
+- `TeeMachine`: The TEE machine data.
+
+### `getTeeMachineWithAttestationData`
+
+Get TEE machine attestation data.
+
+```solidity
+function getTeeMachineWithAttestationData(
+        address _teeId
+    )
+        external view
+        returns (TeeMachineWithAttestationData memory)
+```
+
+**Parameters**
+
+- `_teeId`: The TEE machine id.
+
+**Returns**
+
+- `TeeMachineWithAttestationData`: The TEE machine data.
+
+### `getRandomTeeIds`
+
+Returns random active TEE machine ids.
+
+```solidity
+function getRandomTeeIds(
+        uint256 _extensionId,
+        uint256 _count
+    )
+        external view
+        returns (address[] memory)
+```
+
+**Parameters**
+
+- `_extensionId`: The id of the extension.
+- `_count`: The number of TEE machine ids to return.
+
+**Returns**
+
+- `address[]`: The list of TEE machine ids.
+
+### `getAllActiveTeeMachines`
+
+Get all active TEE machines.
+
+```solidity
+function getAllActiveTeeMachines(
+        uint256 _start,
+        uint256 _end
+    )
+        external view
+        returns (
+            address[] memory _teeIds,
+            string[] memory _urls,
+            uint256 _totalLength
+        )
+```
+
+**Parameters**
+
+- `_start`: The start index (inclusive) for pagination.
+- `_end`: The end index (exclusive) for pagination.
+
+**Returns**
+
+- `_teeIds`: The list of TEE machine ids.
+- `_urls`: The list of TEE machine URLs.
+- `_totalLength`: The total number of active TEE machines.
+
+### `getActiveTeeMachines`
+
+Get active TEE machines.
+
+```solidity
+function getActiveTeeMachines(
+        uint256 _extensionId
+    )
+        external view
+        returns (
+            address[] memory _teeIds,
+            string[] memory _urls
+        )
+```
+
+**Parameters**
+
+- `_extensionId`: The id of the extension.
+
+**Returns**
+
+- `_teeIds`: The list of TEE machine ids.
+- `_urls`: The list of TEE machine URLs.
+
+### `getExtensionId`
+
+Get the extension id for a TEE machine.
+
+```solidity
+function getExtensionId(
+        address _teeId
+    )
+        external view
+        returns (uint256)
+```
+
+**Parameters**
+
+- `_teeId`: The TEE machine id.
+
+**Returns**
+
+- `uint256`: The extension id.
+
+### `getPublicKey`
+
+Get the public key for a TEE machine.
+
+```solidity
+function getPublicKey(
+        address _teeId
+    )
+        external view
+        returns (PublicKey memory)
+```
+
+**Parameters**
+
+- `_teeId`: The TEE machine id.
+
+**Returns**
+
+- `PublicKey`: The public key.
+
+### `getLastStatusChangeTs`
+
+Get the last status change timestamp for a TEE machine.
+
+```solidity
+function getLastStatusChangeTs(
+        address _teeId
+    )
+        external view
+        returns (uint256)
+```
+
+**Parameters**
+
+- `_teeId`: The TEE machine id.
+
+**Returns**
+
+- `uint256`: The last status change timestamp.
+
+## Events
+
+### `NewOwnerProposed`
+
+```solidity
+event NewOwnerProposed(
+        address indexed teeId,
+        address indexed oldOwner,
+        address indexed newOwner
+    )
+```
+
+**Parameters**
+
+- `teeId` (`address indexed teeId`)
+- `oldOwner` (`address indexed oldOwner`)
+- `newOwner` (`address indexed newOwner`)
+
+### `NewOwnerConfirmed`
+
+```solidity
+event NewOwnerConfirmed(
+        address indexed teeId,
+        address indexed newOwner
+    )
+```
+
+**Parameters**
+
+- `teeId` (`address indexed teeId`)
+- `newOwner` (`address indexed newOwner`)
+
+### `TeeMachineRegistered`
+
+```solidity
+event TeeMachineRegistered(
+        address indexed teeId,
+        address indexed teeProxyId,
+        address indexed owner,
+        uint256 extensionId,
+        string url,
+        bytes32 codeHash,
+        bytes32 platform,
+        bytes32 governanceHash
+    )
+```
+
+**Parameters**
+
+- `teeId` (`address indexed teeId`)
+- `teeProxyId` (`address indexed teeProxyId`)
+- `owner` (`address indexed owner`)
+- `extensionId` (`uint256 extensionId`)
+- `url` (`string url`)
+- `codeHash` (`bytes32 codeHash`)
+- `platform` (`bytes32 platform`)
+- `governanceHash` (`bytes32 governanceHash`)
+
+### `TeeMachineStatusChanged`
+
+```solidity
+event TeeMachineStatusChanged(
+        address indexed teeId,
+        TeeStatus indexed newStatus
+    )
+```
+
+**Parameters**
+
+- `teeId` (`address indexed teeId`)
+- `newStatus` (`TeeStatus indexed newStatus`)
+
+### `TeeMachineSettingsUpdated`
+
+```solidity
+event TeeMachineSettingsUpdated(
+        address indexed teeId,
+        address indexed teeProxyId,
+        string url
+    )
+```
+
+**Parameters**
+
+- `teeId` (`address indexed teeId`)
+- `teeProxyId` (`address indexed teeProxyId`)
+- `url` (`string url`)
+
+## Errors
+
+Facet-specific errors are listed here.
+The interface also inherits shared [`ITeeCommonErrors`](/fcc/reference/ITeeCommonErrors).
+This facet uses those for allowlist and proof checks, including `OnlyOwner`, `OwnerNotAllowed`, `InvalidGovernanceHash`, `InvalidResponseData`, and `VersionNotSupported`.
+
+### `InvalidTeePublicKey`
+
+The identity public key in `TeeMachineData` is not a valid uncompressed secp256k1 key.
+
+```solidity
+error InvalidTeePublicKey()
+```
+
+### `InvalidTeeProxyId`
+
+`_teeProxyId` is `address(0)`.
+Thrown by `register` and `updateTeeMachineSettings`.
+
+```solidity
+error InvalidTeeProxyId()
+```
+
+### `InvalidTeePublicKeyOrSignature`
+
+The recovered signer of the `TEE_MACHINE_REGISTER` payload is not the address derived from `TeeMachineData.publicKey`.
+The TEE identity key must sign the registration data.
+
+```solidity
+error InvalidTeePublicKeyOrSignature()
+```
+
+### `InvalidUrl`
+
+`_url` is empty.
+Thrown by `register` and `updateTeeMachineSettings`.
+
+```solidity
+error InvalidUrl()
+```
+
+### `AlreadyRegistered`
+
+A machine with this `teeId` is already registered.
+The same identity key cannot register twice.
+
+```solidity
+error AlreadyRegistered()
+```
+
+### `InvalidTeeStatus`
+
+The machine is not in a status the function allows.
+Examples: `toProduction` from a status other than `INITIALIZED`, `PAUSED`, or `SUSPENDED`; owner `pause` when not `PRODUCTION` or `SUSPENDED`; `ban` when already `INITIALIZED` or `BANNED`.
+
+```solidity
+error InvalidTeeStatus()
+```
+
+### `InvalidResponseDataOrAvailabilityCheckStatus`
+
+`pauseWithProof` requires a _failing_ availability-check proof.
+Thrown when the proof verifies and `status` is `OK` — that proof would promote the machine, not suspend it.
+
+```solidity
+error InvalidResponseDataOrAvailabilityCheckStatus()
+```
+
+### `OnlyOwnerOrExpiredAvailabilityCheck`
+
+A non-owner called `pause` while the machine's availability check is still valid (`endTs >= now`).
+Anyone may suspend a `PRODUCTION` machine only after `endTs` has passed.
+
+```solidity
+error OnlyOwnerOrExpiredAvailabilityCheck()
+```
+
+### `OwnerMismatch`
+
+Declared on this interface.
+The current `MachineManagerFacet` does not throw it (ownership transfer uses `OnlyProposedOwner` instead).
+
+```solidity
+error OwnerMismatch()
+```
+
+### `TooMany`
+
+`getRandomTeeIds` asked for more ids than the extension has active (`PRODUCTION`) machines.
+
+```solidity
+error TooMany()
+```
+
+### `TeeNotFound`
+
+No machine is registered at this `teeId`.
+
+```solidity
+error TeeNotFound()
+```
+
+### `InvalidNewStatus`
+
+Declared on this interface.
+The current `MachineManagerFacet` does not throw it (`InvalidTeeStatus` covers illegal transitions).
+
+```solidity
+error InvalidNewStatus()
+```

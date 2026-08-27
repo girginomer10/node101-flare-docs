@@ -1,0 +1,139 @@
+---
+title: FCC Reference
+description: Solidity reference for Flare Confidential Compute (FCC) smart contracts.
+keywords:
+  [
+    solidity,
+    reference,
+    fcc,
+    flare-confidential-compute,
+    tee,
+    flare-network,
+    smart-contracts,
+  ]
+---
+
+import Tabs from "@theme/Tabs";
+import TabItem from "@theme/TabItem";
+import DocCardList from "@theme/DocCardList";
+import SolidityReference from "@site/src/features/DataTables/SolidityReference";
+
+**Flare Confidential Compute (FCC)** is the Trusted Execution Environment (TEE) protocol on Flare.
+On-chain it is one [EIP-2535](https://eips.ethereum.org/EIPS/eip-2535) diamond, `FlareTeeManager`.
+
+Call the diamond at the `FlareTeeManager` address.
+[`IFlareTeeManager`](/fcc/reference/IFlareTeeManager) is the aggregate interface for that address.
+
+This reference documents five of the facet ABIs it inherits:
+
+- [`IExtensionManager`](/fcc/reference/IExtensionManager) — register and configure Flare Compute Extensions;
+- [`IMachineManager`](/fcc/reference/IMachineManager) — TEE machine registration and lifecycle;
+- [`IVerification`](/fcc/reference/IVerification) — TEE machine attestation and availability checks;
+- [`IOperationFees`](/fcc/reference/IOperationFees) — per-instruction fees for TEE operations;
+- [`IOwnerAllowlist`](/fcc/reference/IOwnerAllowlist) — allowlists for extension, machine, and wallet project owners.
+
+It also documents [`ITeeCommonErrors`](/fcc/reference/ITeeCommonErrors) — shared custom errors inherited by the diamond ABI and several facets.
+
+Facet interfaces are compile-time views of the same diamond — they have no extra deployment.
+
+:::info
+FCC smart contracts are available on **Coston2** and **Coston** today.
+They will be available on other Flare networks soon.
+Resolve `FlareTeeManager` at runtime through the [`FlareContractRegistry`](/network/guides/flare-contracts-registry) rather than hardcoding addresses once deployed on mainnet.
+:::
+
+## Deployed Contracts
+
+export const contracts = ["FlareTeeManager"];
+
+<Tabs block>
+    <TabItem value="coston2" label="Flare Testnet Coston2" default>
+
+        <SolidityReference
+            network="FlareTestnetCoston2"
+            contractNames={contracts}
+            renderAbi={false}
+        />
+
+    </TabItem>
+
+    <TabItem value="coston" label="Songbird Testnet Coston">
+
+        <SolidityReference
+            network="SongbirdTestnetCoston"
+            contractNames={contracts}
+            renderAbi={false}
+        />
+
+    </TabItem>
+
+    <TabItem value="songbird" label="Songbird Canary-Network">
+
+        <SolidityReference
+            network="SongbirdCanaryNetwork"
+            contractNames={contracts}
+            renderAbi={false}
+        />
+
+    </TabItem>
+
+    <TabItem value="flare" label="Flare Mainnet">
+
+        <SolidityReference
+            network="FlareMainnet"
+            contractNames={contracts}
+            renderAbi={false}
+        />
+
+    </TabItem>
+
+</Tabs>
+
+## Interfaces
+
+<DocCardList
+  items={[
+    {
+      type: "link",
+      label: "IFlareTeeManager",
+      href: "/fcc/reference/IFlareTeeManager",
+      docId: "fcc/reference/IFlareTeeManager",
+    },
+    {
+      type: "link",
+      label: "IExtensionManager",
+      href: "/fcc/reference/IExtensionManager",
+      docId: "fcc/reference/IExtensionManager",
+    },
+    {
+      type: "link",
+      label: "IMachineManager",
+      href: "/fcc/reference/IMachineManager",
+      docId: "fcc/reference/IMachineManager",
+    },
+    {
+      type: "link",
+      label: "IVerification",
+      href: "/fcc/reference/IVerification",
+      docId: "fcc/reference/IVerification",
+    },
+    {
+      type: "link",
+      label: "IOperationFees",
+      href: "/fcc/reference/IOperationFees",
+      docId: "fcc/reference/IOperationFees",
+    },
+    {
+      type: "link",
+      label: "IOwnerAllowlist",
+      href: "/fcc/reference/IOwnerAllowlist",
+      docId: "fcc/reference/IOwnerAllowlist",
+    },
+    {
+      type: "link",
+      label: "ITeeCommonErrors",
+      href: "/fcc/reference/ITeeCommonErrors",
+      docId: "fcc/reference/ITeeCommonErrors",
+    },
+  ]}
+/>
