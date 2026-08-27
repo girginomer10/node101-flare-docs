@@ -7,6 +7,7 @@
 
 import fs from "fs";
 import path from "path";
+import yaml from "yaml";
 
 const ICON_GREEN = "\u{1F7E2}";
 const ICON_YELLOW = "\u{1F7E1}";
@@ -428,6 +429,98 @@ function expandEmbeds(body) {
   return result;
 }
 
+const HTTP_METHODS = [
+  "get",
+  "post",
+  "put",
+  "patch",
+  "delete",
+  "options",
+  "head",
+  "trace",
+];
+
+function normalizeOpenApiSpecUrl(url) {
+  if (!url) return null;
+  return String(url)
+    .replace(/^\//, "")
+    .replace(/^pathname:\/\//, "")
+    .trim();
+}
+
+function formatOpenApiDescription(text) {
+  if (!text) return "";
+  return String(text).replace(/\s+/g, " ").trim();
+}
+
+function expandOpenApiDoc(body, rootDir) {
+  return body.replace(/<OpenApiDoc([^>]*)\/>/g, (_, attrs) => {
+    const props = parseJsxProps(`<x ${attrs}/>`);
+    const relUrl = normalizeOpenApiSpecUrl(props.url);
+    if (!relUrl) {
+      return "\n> OpenAPI specification URL missing.\n";
+    }
+
+    const absPath = path.join(rootDir, "static", relUrl);
+    if (!fs.existsSync(absPath)) {
+      return `\n> OpenAPI specification not found at \`${relUrl}\`.\n`;
+    }
+
+    const spec = yaml.parse(fs.readFileSync(absPath, "utf8"));
+    const title = spec?.info?.title ?? "OpenAPI specification";
+    const version = spec?.info?.version ? ` (v${spec.info.version})` : "";
+    const description = formatOpenApiDescription(spec?.info?.description);
+    const publicUrl = `/${relUrl.replace(/\\/g, "/")}`;
+
+    const servers = Array.isArray(spec?.servers)
+      ? spec.servers
+          .map((s) => s?.url)
+          .filter(Boolean)
+          .map((url) => `- ${url}`)
+          .join("\n")
+      : "";
+
+    const rows = [];
+    for (const [apiPath, operations] of Object.entries(spec?.paths ?? {})) {
+      if (!operations || typeof operations !== "object") continue;
+      for (const method of HTTP_METHODS) {
+        const op = operations[method];
+        if (!op) continue;
+        const summary =
+          formatOpenApiDescription(
+            op.summary || op.description || op.operationId,
+          ) || "—";
+        rows.push([method.toUpperCase(), `\`${apiPath}\``, summary]);
+      }
+    }
+
+    const parts = [
+      `## ${title}${version}`,
+      "",
+      description,
+      description ? "" : null,
+      `Full specification: [${publicUrl}](${publicUrl})`,
+      "",
+    ].filter((p) => p !== null);
+
+    if (servers) {
+      parts.push("### Servers", "", servers, "");
+    }
+
+    if (rows.length > 0) {
+      parts.push(
+        "### Endpoints",
+        "",
+        markdownTable(["Method", "Path", "Summary"], rows),
+      );
+    } else {
+      parts.push("_No paths found in the OpenAPI specification._", "");
+    }
+
+    return `\n${parts.join("\n").trim()}\n\n`;
+  });
+}
+
 function stripRemainingJsx(body) {
   let cleaned = body
     .split(/\r?\n/)
@@ -495,6 +588,7 @@ export function expandMdxBody(body, ctx) {
     "reference",
   );
   result = expandEmbeds(result);
+  result = expandOpenApiDoc(result, ctx.rootDir);
   result = stripRemainingJsx(result);
   return result;
 }

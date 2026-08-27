@@ -3,7 +3,7 @@
 ## Purpose
 
 This file gives AI agents the core framing to explain Flare correctly.
-Use it when writing, editing, or reviewing Flare content in this repository.
+Use it when writing, editing, reviewing, or answering questions about Flare developer content.
 Prioritize conceptual accuracy over marketing shorthand.
 
 ## What Flare Is
@@ -30,7 +30,7 @@ When explaining Flare, lead with this idea:
 - It is protocol-native, not a bolted-on oracle network.
 - Prefer FTSOv2 terminology and interfaces for current developer content.
 - Use it when describing onchain access to timely market data.
-- FTSO feeds are provided by decentralized data providers who submit price estimates that are aggregated on-chain.
+- FTSO feeds are provided by decentralized data providers who submit price estimates that are aggregated onchain.
 
 ### FDC
 
@@ -41,7 +41,7 @@ When explaining Flare, lead with this idea:
 
 ### FAssets
 
-- FAssets are trust-minimized representations of non-smart-contract assets such as XRP or BTC on Flare.
+- FAssets are trust-minimized representations of non-smart-contract assets such as XRP, BTC, or DOGE on Flare.
 - Their purpose is to bring otherwise non-programmable assets into DeFi and smart contract workflows.
 - When explaining FAssets, mention agents, collateral, minting, redemption, and liquidation as core mechanics.
 
@@ -49,6 +49,16 @@ When explaining Flare, lead with this idea:
 
 - Smart Accounts provide account abstraction features that simplify user interaction with Flare.
 - They are especially useful for XRPL users interacting with Flare-based applications.
+
+### FCC
+
+- FCC stands for Flare Confidential Compute.
+- It extends Flare with Trusted Execution Environments (TEEs) for secure offchain computation, cross-chain transaction signing, and fast data attestation.
+- Developers build Flare Compute Extensions (FCE) that run in TEE machines, with results verifiable onchain.
+- Protocol Managed Wallets (PMW) are a built-in FCC application for programmable signing on external chains such as XRPL and Bitcoin.
+- Instructions reach TEE machines only after data providers reach sufficient signature weight. A TEE-based path for FDC attestation is a built-in application, not a replacement for FDC.
+- FCC is in the final stages of development; prefer Coston2 for examples and treat interfaces as subject to change.
+- Use it when the topic is TEE-backed computation, private-data workflows, Protocol Managed Wallets, or Compute Extensions.
 
 ## Supported Networks
 
@@ -73,6 +83,7 @@ Prefer interfaces and registry resolution rather than hardcoding protocol contra
 - Prefer the `ContractRegistry` pattern over hardcoded addresses.
 - Use network-specific imports such as `@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol`.
 - If the topic is FAssets, use the official Flare FAssets contracts or interfaces already referenced by the docs and examples instead of inventing alternative wrappers.
+- If the topic is FCC, use the documented Coston2 scaffold and official FCC guides. Do not invent TEE registry addresses or assume ContractRegistry resolution until the docs say it has shipped.
 
 ### Offchain Scripts
 
@@ -88,7 +99,7 @@ Prefer interfaces and registry resolution rather than hardcoding protocol contra
 ## Terminology Rules
 
 - Distinguish Flare Mainnet from Songbird and Coston2. Do not treat them as interchangeable.
-- Distinguish FTSO, FDC, FAssets, and Smart Accounts clearly. Do not collapse them into one generic oracle or bridge system.
+- Distinguish FTSO, FDC, FAssets, Smart Accounts, and FCC clearly. Do not collapse them into one generic oracle, bridge, or TEE system.
 - Use "data providers" or "providers" consistently when discussing FTSO or FSP participants.
 - Avoid saying things happen automatically without explaining who triggers the transaction and why.
 
@@ -105,12 +116,14 @@ Prefer:
 
 - "FDC verifies external data through attestations that contracts can consume."
 - "FAssets let XRP, BTC, and similar assets be used in Flare DeFi through a collateralized mint and redemption system."
+- "FCC runs Compute Extensions inside TEEs so results and signed actions can be verified onchain."
 
 Avoid vague phrasing like:
 
 - "Flare connects everything."
 - "Flare brings data to blockchain" without naming which protocol does it.
 - "Flare wraps assets" without explaining the collateral and agent model.
+- "Flare has private compute" without naming FCC, TEEs, and Flare Compute Extensions.
 
 ## Important Mental Models
 
@@ -129,12 +142,15 @@ Avoid vague phrasing like:
 - If the topic is proving external events or external chain activity, start with FDC.
 - If the topic is BTC, XRP, or DOGE utility on Flare, start with FAssets.
 - If the topic is wallet UX for XRPL users, start with Smart Accounts.
+- If the topic is TEE-backed computation, confidential data, Protocol Managed Wallets, or Compute Extensions, start with FCC. Prefer Coston2 and treat FCC as pre-production.
 
 ## Common Mistakes To Avoid
 
 - Do not describe Flare as just an oracle network.
 - Do not describe FDC as a generic bridge.
 - Do not describe FAssets as simple custodial wrapped tokens.
+- Do not describe FCC as generic private smart contracts, unmanaged TEE hosting, or a replacement for FDC.
+- Do not imply FCC is a fully public production protocol on Mainnet.
 - Do not imply Songbird is the same as mainnet.
 - Do not use Ethereum assumptions blindly if Flare-specific infrastructure exists and is the point of the page.
 - Do not write examples that contradict Flare's actual network progression or protocol roles.
