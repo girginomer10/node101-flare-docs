@@ -138,15 +138,18 @@ function cleanMdxBody(body, sourceRelPath) {
 function buildMarkdownForDoc(docId, route, sourcePath, frontmatter) {
   if (!sourcePath || !fs.existsSync(sourcePath)) return null;
 
-  const htmlBody = markdownFromBuiltHtml(buildDir, route);
+  const raw = fs.readFileSync(sourcePath, "utf8");
+  const { body } = parseFrontmatter(raw);
+  const sourceRelPath = path.relative(docsDir, sourcePath);
+
+  // OpenApiDoc is BrowserOnly in HTML (SSR fallback is "Loading API docs…").
+  // Expand the OpenAPI spec from MDX so agent .md routes get real endpoint tables.
   let cleaned;
-  if (htmlBody) {
-    cleaned = htmlBody;
-  } else {
-    const raw = fs.readFileSync(sourcePath, "utf8");
-    const { body } = parseFrontmatter(raw);
-    const sourceRelPath = path.relative(docsDir, sourcePath);
+  if (/<OpenApiDoc\b/.test(body)) {
     cleaned = cleanMdxBody(body, sourceRelPath);
+  } else {
+    const htmlBody = markdownFromBuiltHtml(buildDir, route);
+    cleaned = htmlBody || cleanMdxBody(body, sourceRelPath);
   }
 
   const title =

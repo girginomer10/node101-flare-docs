@@ -1,0 +1,77 @@
+---
+slug: /developers
+title: Developer Portal
+description: Developer portal for Flare — quickstarts, API docs, OpenAPI, authentication, sandbox, and MCP.
+keywords:
+  [
+    developer-portal,
+    api-docs,
+    openapi,
+    authentication,
+    sandbox,
+    mcp,
+    quickstart,
+    flare-developers,
+  ]
+---
+
+This page is the curated entry point for building on Flare and for AI agents that need API docs, authentication guidance, sandbox endpoints, and machine-readable specs.
+
+Flare Developer Hub documents Flare Mainnet (chain ID `14`) and Coston2 (chain ID `114`), as well as Songbird (chain ID `19`) and Coston (chain ID `16`), where relevant.
+Prefer **Coston2** for dApp examples and use the [ContractRegistry](/network/guides/flare-contracts-registry) pattern instead of hardcoding protocol addresses.
+
+## Quickstarts
+
+- [Deploy your first contract](/network/getting-started) — browser-based deploy on Flare.
+- [Hardhat or Foundry starter kits](/network/guides/hardhat-foundry-starter-kit) — local tooling and deploy workflows.
+- [FTSOv2 price feeds](/ftso/getting-started) — onchain market data from the Flare Time Series Oracle.
+- [FDC attestations](/fdc/getting-started) — verify external chain and Web2 data onchain.
+- [FAssets / FXRP](/fassets/overview) — bring XRP, BTC, and similar assets into Flare DeFi.
+- [Smart Accounts](/smart-accounts/overview) — account abstraction for XRPL users on Flare.
+
+## API documentation
+
+| Resource             | URL                                                                                     | Purpose                                              |
+| :------------------- | :-------------------------------------------------------------------------------------- | :--------------------------------------------------- |
+| **DA Layer OpenAPI** | [`/openapi/data-availability-api.yaml`](pathname:///openapi/data-availability-api.yaml) | Data Availability Client API (FTSO/FDC proofs)       |
+| **Network overview** | [/network/overview](/network/overview)                                                  | RPC endpoints, explorers, faucets, and API base URLs |
+| **Authentication**   | [/developers#authentication](#authentication)                                           | Optional API keys for higher DA/verifier rate limits |
+
+Interactive Swagger for the Data Availability API is embedded in the [FDC DA API reference](/fdc/reference/data-availability-api) and [FTSO scaling DA API reference](/ftso/scaling/solidity-reference/data-availability-api).
+Markdown mirrors of those pages expand the same OpenAPI spec into endpoint tables for agents.
+
+## Authentication
+
+Public Flare HTTP APIs (Data Availability Layer and FDC verifiers) accept an optional **API key** via the `X-API-Key` header.
+Without a key, endpoints remain usable at public rate limits.
+With a key, rate limits increase.
+
+Request a higher-limit DA Layer key by opening an [API Key Request](https://github.com/flare-foundation/developer-hub/issues/new/choose) issue.
+A public test verifier key (`00000000-0000-0000-0000-000000000000`) is documented on the [network overview](/network/overview) and in [FAQs](/support/faqs).
+
+The Developer Hub itself is a static documentation site. Doc search and page fetch for agents use the [MCP server](#ai-agents-and-mcp), not a separate Hub REST API.
+
+## Sandbox environment
+
+Use **Coston2** as the primary developer sandbox:
+
+| Item          | Value                                                                                     |
+| :------------ | :---------------------------------------------------------------------------------------- |
+| RPC           | `https://coston2-api.flare.network/ext/C/rpc`                                             |
+| Chain ID      | `114`                                                                                     |
+| Explorer      | [coston2-explorer.flare.network](https://coston2-explorer.flare.network)                  |
+| Faucet        | [faucet.flare.network/coston2](https://faucet.flare.network/coston2) — C2FLR, FXRP, USDT0 |
+| DA Layer      | `https://ctn2-data-availability.flare.network/`                                           |
+| FDC verifiers | `https://fdc-verifiers-testnet.flare.network/`                                            |
+
+## AI agents and MCP
+
+- **MCP (Streamable HTTP):** `https://dev.flare.network/mcp` — tools `docs_search` and `docs_fetch`; setup guide: [Flare Developer Hub MCP Server](/network/guides/flare-developer-hub-mcp-server).
+- **Discovery:** [`/.well-known/mcp`](pathname:///.well-known/mcp)
+- **llms.txt:** [`/llms.txt`](pathname:///llms.txt) — when-to-use guidance and Markdown page index
+- **Agent instructions:** [`/AGENTS.md`](pathname:///AGENTS.md)
+- **Markdown pages:** append `.md` to any doc URL (for example `/ftso/overview.md`)
+
+## Developer tools catalog
+
+Browse curated RPCs, bridges, indexers, wallet SDKs, and more on [Developer Tools](/network/developer-tools).

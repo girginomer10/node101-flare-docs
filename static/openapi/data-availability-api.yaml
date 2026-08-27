@@ -128,7 +128,19 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AttestationTypeGetByRoundIdBytesError"
-          description: ""
+          description: Bad request — invalid feed ids or voting round
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: Unauthorized — invalid API key
+        "429":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+          description: Rate limited — request an API key for higher limits
   /api/v1/fdc:
     get:
       operationId: fdc_list_2
@@ -262,9 +274,25 @@ components:
       in: header
       name: X-API-Key
       description: |
-        API key for higher rate limits. Provide via the `X-API-Key` header.
+        Optional API key for higher rate limits.
+        Provide via the `X-API-Key` header. Without a key, public rate limits apply.
+        Request a key via the Developer Hub API Key Request issue template.
 
   schemas:
+    ApiError:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
+        code:
+          type: string
+          description: Optional machine-readable error code
+        hint:
+          type: string
+          description: Optional resolution hint for clients and agents
     AttestationResponseProofByRequestRoundV1RequestRequest:
       type: object
       properties:

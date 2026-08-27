@@ -43,6 +43,94 @@ const config: Config = {
     },
   },
 
+  headTags: [
+    {
+      tagName: "meta",
+      attributes: {
+        name: "google-site-verification",
+        content: "S7ko-mhGTnZdYIIAcKUa-IsjtF8x-0wvleX2uDUg0NU",
+      },
+    },
+    {
+      tagName: "meta",
+      attributes: {
+        property: "og:type",
+        content: "website",
+      },
+    },
+    {
+      tagName: "link",
+      attributes: {
+        rel: "preload",
+        href: "/fonts/Satoshi/Satoshi-Variable.woff2",
+        as: "font",
+        type: "font/woff2",
+        crossorigin: "anonymous",
+      },
+    },
+    {
+      tagName: "script",
+      attributes: {
+        type: "application/ld+json",
+      },
+      innerHTML: JSON.stringify({
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://flare.network/#organization",
+            name: "Flare Ecosystems Limited",
+            alternateName: ["Flare", "Flare Network", "Flare Foundation"],
+            url: "https://flare.network/",
+            logo: "https://dev.flare.network/img/ui/flare-icon.light.svg",
+            email: "info@flare.network",
+            sameAs: [
+              "https://github.com/flare-foundation",
+              "https://x.com/FlareNetworks",
+              "https://t.me/FlareNetwork",
+            ],
+            contactPoint: [
+              {
+                "@type": "ContactPoint",
+                contactType: "customer support",
+                email: "info@flare.network",
+                url: "https://flare.network/resources/technical-support",
+              },
+            ],
+            address: {
+              "@type": "PostalAddress",
+              streetAddress: "Commerce House, Wickhams Cay 1, P.O. Box 3140",
+              addressLocality: "Road Town",
+              addressRegion: "Tortola",
+              postalCode: "VG 1110",
+              addressCountry: "VG",
+            },
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://dev.flare.network/#website",
+            name: "Flare Developer Hub",
+            url: "https://dev.flare.network/",
+            description:
+              "Official documentation for Flare: tutorials, SDKs, API docs, and AI agent tools.",
+            publisher: { "@id": "https://flare.network/#organization" },
+          },
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://dev.flare.network/#software",
+            name: "Flare Developer Hub",
+            applicationCategory: "DeveloperApplication",
+            operatingSystem: "Web",
+            url: "https://dev.flare.network/",
+            description:
+              "Developer documentation, MCP tools, and Data Availability OpenAPI for building on Flare.",
+            provider: { "@id": "https://flare.network/#organization" },
+          },
+        ],
+      }),
+    },
+  ],
+
   // Experimental features in preparation for Docusaurus v4 upgrade
   // rspack is disabled currently due to bundling performance issues
   future: {
@@ -98,25 +186,6 @@ const config: Config = {
       defaultMode: "light",
       respectPrefersColorScheme: true,
     },
-    headTags: [
-      {
-        tagName: "meta",
-        attributes: {
-          name: "google-site-verification",
-          content: "S7ko-mhGTnZdYIIAcKUa-IsjtF8x-0wvleX2uDUg0NU",
-        },
-      },
-      {
-        tagName: "link",
-        attributes: {
-          rel: "preload",
-          href: "/fonts/Satoshi/Satoshi-Variable.woff2",
-          as: "font",
-          type: "font/woff2",
-          crossorigin: "anonymous",
-        },
-      },
-    ],
     docs: {
       sidebar: {
         autoCollapseCategories: false,
@@ -133,6 +202,11 @@ const config: Config = {
         height: 32,
       },
       items: [
+        {
+          to: "/developers",
+          label: "Developers",
+          position: "left",
+        },
         {
           href: "https://github.com/flare-foundation/developer-hub",
           className: "header-github-link",
@@ -181,7 +255,6 @@ const config: Config = {
               label: "Whitepapers",
               to: "/support/whitepapers",
             },
-
             {
               label: "Audits",
               to: "/support/audits",
@@ -332,6 +405,10 @@ const config: Config = {
         // curation
         includeOrder: [
           "1-intro.mdx",
+          "developers.mdx",
+          "about.mdx",
+          "contact.mdx",
+          "privacy.mdx",
           "**/network/**/*.mdx",
           "**/network/**/*.md",
           "**/ftso/**/*.mdx",

@@ -1,0 +1,23 @@
+{
+  "mcp_version": "1.0",
+  "server_name": "Flare DevHub MCP Server",
+  "server_version": "1.0.0",
+  "description": "Search and fetch Flare Developer Hub documentation via Model Context Protocol.",
+  "endpoints": {
+    "streamable_http": "https://dev.flare.network/mcp"
+  },
+  "transport": {
+    "type": "streamable-http",
+    "url": "https://dev.flare.network/mcp"
+  },
+  "capabilities": {
+    "tools": true,
+    "resources": false,
+    "prompts": false
+  },
+  "authentication": {
+    "required": false
+  },
+  "documentation": "https://dev.flare.network/network/guides/flare-developer-hub-mcp-server",
+  "openapi": "https://dev.flare.network/openapi/data-availability-api.yaml"
+}

@@ -328,6 +328,80 @@ function loadTitleByRoute() {
   return titles;
 }
 
+const WHEN_TO_USE_SECTION = `## When to use this
+
+Use Flare Developer Hub when you need official docs or agent tooling for Flare (EVM Layer 1 with enshrined data protocols):
+
+- **FTSOv2** — onchain price and time-series feeds
+- **FDC** — attestations for external chain / Web2 data verification
+- **FAssets / FXRP** — trust-minimized XRP/BTC/DOGE assets in Flare DeFi
+- **Smart Accounts** — XRPL-user account abstraction on Flare
+- **Network setup** — RPC, chain IDs (Mainnet 14, Coston2 114), ContractRegistry
+- **Agent retrieval** — MCP at ${SITE_BASE}/mcp (\`docs_search\`, \`docs_fetch\`); DA OpenAPI at ${SITE_BASE}/openapi/data-availability-api.yaml
+
+Start at ${SITE_BASE}/developers.md, ${SITE_BASE}/agent-instructions.md, or ${SITE_BASE}/llms.txt.
+Prefer Coston2 for examples. Prefer Markdown URLs (append \`.md\`) for retrieval.
+
+`;
+
+/**
+ * Ensure the main llms.txt index includes concrete when-to-use guidance.
+ */
+function ensureWhenToUse(content) {
+  if (/##\s*When to use this/i.test(content)) {
+    return content;
+  }
+  // Insert after the first heading block (title + optional description).
+  const lines = content.split(/\r?\n/);
+  let insertAt = 0;
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].startsWith("#")) {
+      insertAt = i + 1;
+      // Skip following blank lines and a short description paragraph.
+      while (insertAt < lines.length && lines[insertAt].trim() === "") {
+        insertAt++;
+      }
+      while (
+        insertAt < lines.length &&
+        lines[insertAt].trim() !== "" &&
+        !lines[insertAt].startsWith("#")
+      ) {
+        insertAt++;
+      }
+      break;
+    }
+  }
+  lines.splice(insertAt, 0, "", WHEN_TO_USE_SECTION.trimEnd(), "");
+  return lines.join("\n");
+}
+
+/**
+ * Prepend agent discovery links that are not doc routes.
+ */
+function ensureAgentDiscoveryLinks(content) {
+  const block = `## Agent discovery
+
+- [Developer Portal](${SITE_BASE}/developers.md)
+- [DA Layer OpenAPI](${SITE_BASE}/openapi/data-availability-api.yaml)
+- [Agent instructions](${SITE_BASE}/agent-instructions.md)
+- [AGENTS.md](${SITE_BASE}/AGENTS.md)
+- [MCP discovery](${SITE_BASE}/.well-known/mcp)
+- [MCP server guide](${SITE_BASE}/network/guides/flare-developer-hub-mcp-server.md)
+- [Authentication](${SITE_BASE}/developers.md#authentication)
+
+`;
+  if (/##\s*Agent discovery/i.test(content)) {
+    return content;
+  }
+  if (/##\s*When to use this/i.test(content)) {
+    return content.replace(
+      /(##\s*When to use this[\s\S]*?)(\n##\s)/i,
+      `$1\n${block}$2`,
+    );
+  }
+  return `${block}${content}`;
+}
+
 function processLlmsTxt(
   filePath,
   replacements,
@@ -339,6 +413,8 @@ function processLlmsTxt(
   let content = rewritePaths(original, replacements);
   content = pruneAndMarkdownify(content, canonicalRoutes);
   if (isIndex) {
+    content = ensureWhenToUse(content);
+    content = ensureAgentDiscoveryLinks(content);
     content = appendMissingRoutes(content, canonicalRoutes, titleByRoute);
   }
   if (content !== original) {
