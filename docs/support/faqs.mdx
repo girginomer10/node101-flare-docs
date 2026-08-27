@@ -191,6 +191,12 @@ Treat that as part of your architecture: submit the request, then complete the f
 The round to query is derived from the timestamp of the block that contains your request, not one you choose.
 The [Web2Json guide](/fdc/guides/hardhat/web2-json) shows the calculation, and offsets differ between networks.
 
+### Where can I find the list of authorized signers for FDC attestations?
+
+There is no separate FDC-specific signer list.
+FDC does not move assets across chains itself; it produces verifiable attestations about events on other chains or Web2 sources.
+The signers backing an attestation are the current members of the [Flare Signing Policy](/network/fsp), the same validator set used across the Flare Systems Protocol, not a list maintained by FDC.
+
 ### Does FDC only verify data from other blockchains?
 
 No.
@@ -271,10 +277,12 @@ Confidential Space hardware belongs to production hosting, and no paid cloud ser
 
 ### How do I get Coston2 indexer database credentials?
 
-The local `ext-proxy` reads TEE events from Flare's C-chain indexer, so it needs read-only credentials that are not published in the guides.
-Request them through [technical support](https://flare.network/resources/technical-support) or [X](https://x.com/FlareDevs) and say what you are building, as described in [Build Your First Extension](/fcc/guides/getting-started).
+The local `ext-proxy` reads TEE events from Flare's C-chain indexer.
+The host, port, and database name are already in [step 3 of Build Your First Extension](/fcc/guides/getting-started#step-3-configure-the-indexer-database); only the read-only username and password are missing from the guide, since they are issued per requester and rotated periodically.
+Request them through [technical support](https://flare.network/resources/technical-support) or [X](https://x.com/FlareDevs) and say what you are building.
 
-Credentials shared in community chats go stale, and older repository documents may reference retired hosts or a VPN requirement that no longer applies.
+Credentials shared in community chats go stale faster than the guide does.
+Older repository documents may also point at the Coston (not Coston2) indexer, which uses different credentials and needs a VPN; Coston2 does not.
 
 ### Where are the FCC registry addresses for Coston2?
 
@@ -285,7 +293,11 @@ Take the addresses from that file rather than from a chat message or an older gu
 
 ### Why does my TEE machine stay INITIALIZED with a 404 on the availability check?
 
-The availability check and the Coston2 data providers work, so a machine that never reaches production is nearly always a local mismatch: a stale stack pointing at a retired deployment, or a registered URL that no longer resolves because a quick tunnel restarted.
+First check whether you are running with `SIMULATED_TEE=true`.
+A simulated attestation is not something the real Coston2 data providers can cosign, so the availability check never gets voted on and the machine stays at INITIALIZED forever, with every poll for it returning `404`.
+This is expected for local development and does not mean your extension is broken; it just means this particular machine will never show PRODUCTION onchain.
+
+Beyond that, the availability check and the Coston2 data providers work, so a machine that never reaches production is nearly always a local mismatch: a stale stack pointing at a retired deployment, or a registered URL that no longer resolves because a quick tunnel restarted.
 
 Start by reading your own onchain state with the scaffold's `query-tee` tool, then work through [FCC Troubleshooting](/fcc/troubleshooting#tee-machine-never-reaches-production).
 
@@ -304,6 +316,11 @@ The [Private Key Extension](/fcc/guides/sign-extension) guide shows both the key
 
 Recovery plan.
 A TEE machine can go down, and an extension should be treated as stateless, so decide up front how a key survives the loss of the machine.
+
+### My Web2Json verifier request fails only against the OpenWeatherMap URL from the Weather Insurance example, why?
+
+Check your OpenWeatherMap plan before assuming the verifier is broken.
+The [Weather Insurance Extension](/fcc/guides/weather-insurance-extension) example calls an endpoint that needs a paid OpenWeatherMap plan, so a free-tier key fails there even though the same verifier works correctly against other URLs.
 
 ### Are Protocol Managed Wallets available yet?
 
