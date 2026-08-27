@@ -1,0 +1,961 @@
+---
+title: IExtensionManager
+description: Register and configure Flare Compute Extensions.
+keywords: [fcc, tee, solidity, flare-confidential-compute, flare-network]
+sidebar_position: 2
+---
+
+Public interface for `ExtensionManagerFacet` on the [`FlareTeeManager`](/fcc/reference/IFlareTeeManager) diamond.
+
+A Flare Compute Extension is an isolated set of TEE functionality: supported code hashes (Docker image hashes) and platforms, plus the contracts that send instructions and verify machine state.
+
+The caller of public `register` must be on the global extension-owner allowlist ([`IOwnerAllowlist`](/fcc/reference/IOwnerAllowlist)).
+The owner then sets the instructions sender and an optional `ITeeExtensionStateVerifier`.
+
+Inherits shared [`ITeeCommonErrors`](/fcc/reference/ITeeCommonErrors).
+
+## Functions
+
+### `register`
+
+Register a new public TEE extension.
+The caller must be on the global extension-owner allowlist (governed via IOwnerAllowlist.addAllowedExtensionOwners / allowAllExtensionOwners).
+The assigned id starts from `type(uint16).max + 1` (= 65536); lower ids are reserved for governance-minted extensions (see registerReserved).
+Emits TeeExtensionRegistered and TeeExtensionContractsSet events.
+
+```solidity
+function register(
+        ITeeExtensionStateVerifier _teeExtensionStateVerifier,
+        address _teeExtensionInstructionsSender
+    )
+        external
+        returns (uint256 _extensionId)
+```
+
+**Parameters**
+
+- `_teeExtensionStateVerifier`: The TEE extension state verifier contract.
+- `_teeExtensionInstructionsSender`: The address that can send instructions to the TEE machines.
+
+**Returns**
+
+- `_extensionId`: The id of the registered extension.
+
+### `registerReserved`
+
+Mint a reserved TEE extension with id in `[1, type(uint16).max]`.
+Governance picks both the id and the initial owner.
+The extension's verifier and instructions-sender are NOT set here — the owner must call setExtensionContracts before the extension is operational.
+Subsequent ownership transfer follows the same allowlist gating as public extensions (proposeNewOwner / confirmOwnership require the target to be on the global extension-owner allowlist).
+Emits TeeExtensionRegistered event.
+
+```solidity
+function registerReserved(
+        uint256 _extensionId,
+        address _owner
+    )
+        external
+```
+
+**Parameters**
+
+- `_extensionId`: The reserved id to mint (must satisfy 0 < id < 65536).
+- `_owner`: The initial owner address (must be non-zero).
+  Can only be called by the governance.
+
+### `setExtensionContracts`
+
+Set the extension contracts for a given extension id.
+Emits TeeExtensionContractsSet event.
+
+```solidity
+function setExtensionContracts(
+        uint256 _extensionId,
+        ITeeExtensionStateVerifier _teeExtensionStateVerifier,
+        address _teeExtensionInstructionsSender
+    )
+        external
+```
+
+**Parameters**
+
+- `_extensionId`: The id of the extension.
+- `_teeExtensionStateVerifier`: The TEE extension state verifier contract.
+- `_teeExtensionInstructionsSender`: The address that can send instructions to the TEE machines.
+  Can only be called by the extension owner.
+
+### `addTeeVersion`
+
+Add a new TEE version.
+Emits TeeVersionAdded event.
+
+```solidity
+function addTeeVersion(
+        uint256 _extensionId,
+        bytes32 _version,
+        bytes32 _codeHash,
+        bytes32[] calldata _platforms
+    )
+        external
+```
+
+**Parameters**
+
+- `_extensionId`: The id of the extension.
+- `_version`: The version (UTF-8 encoded name, for off-chain use only).
+- `_codeHash`: The code hash.
+- `_platforms`: The supported platforms.
+  Can only be called by the extension owner.
+
+### `disableCodeHashPlatforms`
+
+Disable one or more platforms of a TEE code hash.
+Every active (PRODUCTION) machine of the extension running one of the disabled (codeHash, platform) pairs is paused in the same transaction (moved to PAUSED and removed from the active sets).
+Emits CodeHashPlatformsDisabled and a TeeMachineStatusChanged event per paused machine.
+
+```solidity
+function disableCodeHashPlatforms(
+        uint256 _extensionId,
+        bytes32 _codeHash,
+        bytes32[] calldata _platforms
+    )
+        external
+```
+
+**Parameters**
+
+- `_extensionId`: The id of the extension.
+- `_codeHash`: The code hash.
+- `_platforms`: The non-empty list of platforms to disable.
+  Each platform must belong to the code hash version and must not already be disabled.
+  To disable every platform of a code hash, pass them all explicitly.
+  Can only be called by the extension owner.
+
+### `addSupportedKeyTypes`
+
+Add supported key types.
+Emits SupportedKeyTypesAdded event.
+
+```solidity
+function addSupportedKeyTypes(
+        uint256 _extensionId,
+        bytes32[] calldata _keyTypes
+    )
+        external
+```
+
+**Parameters**
+
+- `_extensionId`: The id of the extension.
+- `_keyTypes`: The key types to add.
+  Can only be called by the extension owner.
+
+### `removeSupportedKeyTypes`
+
+Remove supported key types.
+Emits SupportedKeyTypesRemoved event.
+
+```solidity
+function removeSupportedKeyTypes(
+        uint256 _extensionId,
+        bytes32[] calldata _keyTypes
+    )
+        external
+```
+
+**Parameters**
+
+- `_extensionId`: The id of the extension.
+- `_keyTypes`: The key types to remove.
+  Can only be called by the extension owner.
+
+### `proposeNewOwner`
+
+It is a two-step process, the new owner has to confirm the ownership.
+Emits NewOwnerProposed event.
+
+```solidity
+function proposeNewOwner(
+        uint256 _extensionId,
+        address _newOwner
+    )
+        external
+```
+
+**Parameters**
+
+- `_extensionId`: The id of the extension.
+- `_newOwner`: The new owner address.
+  Can only be called by the current TEE extension owner.
+
+### `confirmOwnership`
+
+Confirm the ownership of a TEE extension.
+Operator remains unchanged.
+Emits NewOwnerConfirmed event.
+
+```solidity
+function confirmOwnership(
+        uint256 _extensionId
+    )
+        external
+```
+
+**Parameters**
+
+- `_extensionId`: The id of the extension.
+  Can only be called by the proposed new owner.
+
+### `setExtensionOperator`
+
+Set (or clear, by passing `address(0)`) the optional extension operator.
+The operator may call the _prep_ steps for flows whose real security gate is a downstream governance threshold signature: machine-path-list lifecycle (createNewMachinePathList / addMachinePaths / finalizeMachinePathList) and pausing-addresses record creation (setTeePausingAddresses).
+Emits ExtensionOperatorSet event.
+
+```solidity
+function setExtensionOperator(
+        uint256 _extensionId,
+        address _operator
+    )
+        external
+```
+
+**Parameters**
+
+- `_extensionId`: The id of the extension.
+- `_operator`: The new operator address, or `address(0)` to clear.
+  Can only be called by the extension owner.
+
+### `nextPublicExtensionId`
+
+Get the id that the next public `register()` call will assign.
+Initialised to `type(uint16).max + 1` (= 65536) and incremented on each successful public registration.
+Reserved ids (1..65535) do not flow through this counter — they are picked explicitly by governance via registerReserved.
+
+```solidity
+function nextPublicExtensionId()
+        external view
+        returns (uint256)
+```
+
+**Returns**
+
+- `uint256`: The next public extension id.
+
+### `getSystemSupportedPlatforms`
+
+Get system supported platforms.
+
+```solidity
+function getSystemSupportedPlatforms()
+        external view
+        returns (bytes32[] memory)
+```
+
+**Returns**
+
+- `bytes32[]`: The list of system supported platforms.
+
+### `getSystemSupportedKeyTypes`
+
+Get system supported key types.
+
+```solidity
+function getSystemSupportedKeyTypes()
+        external view
+        returns (bytes32[] memory)
+```
+
+**Returns**
+
+- `bytes32[]`: The list of system supported key types.
+
+### `getSystemSupportedSigningAlgos`
+
+Get system supported signing algorithms for the given key type.
+
+```solidity
+function getSystemSupportedSigningAlgos(
+        bytes32 _keyType
+    )
+        external view
+        returns (bytes32[] memory)
+```
+
+**Parameters**
+
+- `_keyType`: The key type.
+
+**Returns**
+
+- `bytes32[]`: The list of supported signing algorithms.
+
+### `getExtensionOwner`
+
+Get the owner of a TEE extension.
+
+```solidity
+function getExtensionOwner(
+        uint256 _extensionId
+    )
+        external view
+        returns (address)
+```
+
+**Parameters**
+
+- `_extensionId`: The id of the extension.
+
+**Returns**
+
+- `address`: The owner address.
+
+### `getExtensionOperator`
+
+Get the operator of a TEE extension.
+
+```solidity
+function getExtensionOperator(
+        uint256 _extensionId
+    )
+        external view
+        returns (address)
+```
+
+**Parameters**
+
+- `_extensionId`: The id of the extension.
+
+**Returns**
+
+- `address`: The operator address, or `address(0)` if no operator is set.
+
+### `getTeeExtensionStateVerifier`
+
+Get the TEE extension state verifier contract.
+
+```solidity
+function getTeeExtensionStateVerifier(
+        uint256 _extensionId
+    )
+        external view
+        returns (ITeeExtensionStateVerifier)
+```
+
+**Parameters**
+
+- `_extensionId`: The id of the extension.
+
+**Returns**
+
+- `ITeeExtensionStateVerifier`: The TEE extension state verifier contract address.
+
+### `getTeeExtensionInstructionsSender`
+
+Get the TEE extension instructions sender address.
+
+```solidity
+function getTeeExtensionInstructionsSender(
+        uint256 _extensionId
+    )
+        external view
+        returns (address)
+```
+
+**Parameters**
+
+- `_extensionId`: The id of the extension.
+
+**Returns**
+
+- `address`: The TEE extension instructions sender address.
+
+### `isSigningAlgoSupported`
+
+Checks if the signing algorithm is supported for the given key type.
+
+```solidity
+function isSigningAlgoSupported(
+        bytes32 _keyType,
+        bytes32 _signingAlgo
+    )
+        external view
+        returns (bool)
+```
+
+**Parameters**
+
+- `_keyType`: The key type.
+- `_signingAlgo`: The signing algorithm.
+
+**Returns**
+
+- `bool`: True if the signing algorithm is supported.
+
+### `getSupportedKeyTypes`
+
+Returns supported wallet/project key types for the given extension.
+
+```solidity
+function getSupportedKeyTypes(
+        uint256 _extensionId
+    )
+        external view
+        returns (bytes32[] memory _supportedKeyTypes)
+```
+
+**Parameters**
+
+- `_extensionId`: The id of the extension.
+
+**Returns**
+
+- `_supportedKeyTypes`: The supported key types.
+
+### `isKeyTypeSupported`
+
+Checks if the key type is supported for the given extension.
+
+```solidity
+function isKeyTypeSupported(
+        uint256 _extensionId,
+        bytes32 _keyType
+    )
+        external view
+        returns (bool)
+```
+
+**Parameters**
+
+- `_extensionId`: The id of the extension.
+- `_keyType`: The key type.
+
+**Returns**
+
+- `bool`: True if the key type is supported.
+
+### `getSupportedCodeHashes`
+
+Returns supported code hashes for the given extension.
+
+```solidity
+function getSupportedCodeHashes(
+        uint256 _extensionId
+    )
+        external view
+        returns (bytes32[] memory _supportedCodeHashes)
+```
+
+**Parameters**
+
+- `_extensionId`: The id of the extension.
+
+**Returns**
+
+- `_supportedCodeHashes`: The supported code hashes.
+
+### `isCodeHashPlatformSupported`
+
+Checks if the code hash and platform are supported for the given extension.
+
+```solidity
+function isCodeHashPlatformSupported(
+        uint256 _extensionId,
+        bytes32 _codeHash,
+        bytes32 _platform
+    )
+        external view
+        returns (bool)
+```
+
+**Parameters**
+
+- `_extensionId`: The id of the extension.
+- `_codeHash`: The code hash.
+- `_platform`: The platform.
+
+**Returns**
+
+- `bool`: True if the code hash and platform are supported, false otherwise.
+
+### `isCodeHashPlatformDisabled`
+
+Get the info if the code hash and platform pair is disabled for the given extension.
+
+```solidity
+function isCodeHashPlatformDisabled(
+        uint256 _extensionId,
+        bytes32 _codeHash,
+        bytes32 _platform
+    )
+        external view
+        returns (bool)
+```
+
+**Parameters**
+
+- `_extensionId`: The id of the extension.
+- `_codeHash`: The code hash.
+- `_platform`: The platform.
+
+**Returns**
+
+- `bool` (`bool`)
+
+### `getCodeHashInfo`
+
+Returns the code hash info (version and platforms).
+
+```solidity
+function getCodeHashInfo(
+        uint256 _extensionId,
+        bytes32 _codeHash
+    )
+        external view
+        returns (
+            bytes32 _version,
+            bytes32[] memory _platforms
+        )
+```
+
+**Parameters**
+
+- `_extensionId`: The id of the extension.
+- `_codeHash`: The code hash.
+
+**Returns**
+
+- `_version`: The version (UTF-8 encoded name, for off-chain use only).
+- `_platforms`: The supported platforms.
+
+## Events
+
+### `TeeExtensionRegistered`
+
+```solidity
+event TeeExtensionRegistered(
+        uint256 indexed extensionId,
+        address indexed owner
+    )
+```
+
+**Parameters**
+
+- `extensionId` (`uint256 indexed extensionId`)
+- `owner` (`address indexed owner`)
+
+### `TeeExtensionContractsSet`
+
+```solidity
+event TeeExtensionContractsSet(
+        uint256 indexed extensionId,
+        ITeeExtensionStateVerifier indexed teeExtensionStateVerifier,
+        address indexed teeExtensionInstructionsSender
+    )
+```
+
+**Parameters**
+
+- `extensionId` (`uint256 indexed extensionId`)
+- `teeExtensionStateVerifier` (`ITeeExtensionStateVerifier indexed teeExtensionStateVerifier`)
+- `teeExtensionInstructionsSender` (`address indexed teeExtensionInstructionsSender`)
+
+### `SystemSupportedPlatformsAdded`
+
+```solidity
+event SystemSupportedPlatformsAdded(
+        bytes32[] platforms
+    )
+```
+
+**Parameters**
+
+- `platforms` (`bytes32[] platforms`)
+
+### `SystemSupportedPlatformsRemoved`
+
+```solidity
+event SystemSupportedPlatformsRemoved(
+        bytes32[] platforms
+    )
+```
+
+**Parameters**
+
+- `platforms` (`bytes32[] platforms`)
+
+### `SystemSupportedKeyTypesAndSigningAlgosAdded`
+
+```solidity
+event SystemSupportedKeyTypesAndSigningAlgosAdded(
+        bytes32[] keyTypes,
+        bytes32[][] signingAlgosByKeyType
+    )
+```
+
+**Parameters**
+
+- `keyTypes` (`bytes32[] keyTypes`)
+- `signingAlgosByKeyType` (`bytes32[][] signingAlgosByKeyType`)
+
+### `SystemSupportedKeyTypesAndSigningAlgosRemoved`
+
+```solidity
+event SystemSupportedKeyTypesAndSigningAlgosRemoved(
+        bytes32[] keyTypes,
+        bytes32[][] signingAlgosByKeyType
+    )
+```
+
+**Parameters**
+
+- `keyTypes` (`bytes32[] keyTypes`)
+- `signingAlgosByKeyType` (`bytes32[][] signingAlgosByKeyType`)
+
+### `TeeVersionAdded`
+
+```solidity
+event TeeVersionAdded(
+        uint256 indexed extensionId,
+        bytes32 version,
+        bytes32 indexed codeHash,
+        bytes32[] platforms
+    )
+```
+
+**Parameters**
+
+- `extensionId` (`uint256 indexed extensionId`)
+- `version` (`bytes32 version`)
+- `codeHash` (`bytes32 indexed codeHash`)
+- `platforms` (`bytes32[] platforms`)
+
+### `CodeHashPlatformsDisabled`
+
+```solidity
+event CodeHashPlatformsDisabled(
+        uint256 indexed extensionId,
+        bytes32 indexed codeHash,
+        bytes32[] platforms
+    )
+```
+
+**Parameters**
+
+- `extensionId` (`uint256 indexed extensionId`)
+- `codeHash` (`bytes32 indexed codeHash`)
+- `platforms` (`bytes32[] platforms`)
+
+### `SupportedKeyTypesAdded`
+
+```solidity
+event SupportedKeyTypesAdded(
+        uint256 indexed extensionId,
+        bytes32[] keyTypes
+    )
+```
+
+**Parameters**
+
+- `extensionId` (`uint256 indexed extensionId`)
+- `keyTypes` (`bytes32[] keyTypes`)
+
+### `SupportedKeyTypesRemoved`
+
+```solidity
+event SupportedKeyTypesRemoved(
+        uint256 indexed extensionId,
+        bytes32[] keyTypes
+    )
+```
+
+**Parameters**
+
+- `extensionId` (`uint256 indexed extensionId`)
+- `keyTypes` (`bytes32[] keyTypes`)
+
+### `NewOwnerProposed`
+
+```solidity
+event NewOwnerProposed(
+        uint256 indexed extensionId,
+        address indexed oldOwner,
+        address indexed newOwner
+    )
+```
+
+**Parameters**
+
+- `extensionId` (`uint256 indexed extensionId`)
+- `oldOwner` (`address indexed oldOwner`)
+- `newOwner` (`address indexed newOwner`)
+
+### `NewOwnerConfirmed`
+
+```solidity
+event NewOwnerConfirmed(
+        uint256 indexed extensionId,
+        address indexed newOwner
+    )
+```
+
+**Parameters**
+
+- `extensionId` (`uint256 indexed extensionId`)
+- `newOwner` (`address indexed newOwner`)
+
+### `ExtensionOperatorSet`
+
+```solidity
+event ExtensionOperatorSet(
+        uint256 indexed extensionId,
+        address indexed oldOperator,
+        address indexed newOperator
+    )
+```
+
+**Parameters**
+
+- `extensionId` (`uint256 indexed extensionId`)
+- `oldOperator` (`address indexed oldOperator`)
+- `newOperator` (`address indexed newOperator`)
+
+## Errors
+
+Facet-specific errors are listed here.
+The interface also inherits shared [`ITeeCommonErrors`](/fcc/reference/ITeeCommonErrors).
+This facet uses those for `OnlyExtensionOwner`, `OnlyProposedOwner`, `KeyTypeNotSupported`, and `LengthsMismatch`.
+
+### `InvalidInstructionsSender`
+
+The instructions sender is `address(0)`.
+Thrown by public `register` and `setExtensionContracts`.
+The sender is the only address that may call `IInstructions.sendInstructions` for that extension.
+
+```solidity
+error InvalidInstructionsSender()
+```
+
+### `VersionEmpty`
+
+`addTeeVersion` was called with `_version == bytes32(0)`.
+The version label is required (UTF-8 name for off-chain use).
+
+```solidity
+error VersionEmpty()
+```
+
+### `CodeHashZero`
+
+`addTeeVersion` was called with `_codeHash == bytes32(0)`.
+
+```solidity
+error CodeHashZero()
+```
+
+### `NoPlatforms`
+
+The platforms array is empty.
+Thrown by `addTeeVersion`, `disableCodeHashPlatforms`, and governance updates to the system-supported platform list.
+
+```solidity
+error NoPlatforms()
+```
+
+### `UnsupportedPlatform`
+
+The platform is not on the system-supported list.
+Thrown by `addTeeVersion` for each platform in `_platforms`.
+
+```solidity
+error UnsupportedPlatform(bytes32 platform)
+```
+
+**Parameters**
+
+- `platform`: The unsupported platform.
+
+### `VersionAlreadyExists`
+
+`addTeeVersion` used a `_codeHash` that is already registered for this extension.
+Versions are identified by code hash.
+
+```solidity
+error VersionAlreadyExists()
+```
+
+### `PlatformAlreadyExists`
+
+The platform is already in the set being updated.
+Thrown by `addTeeVersion` if a platform is duplicated for that code hash, and by governance when adding a system-supported platform that is already listed.
+
+```solidity
+error PlatformAlreadyExists(bytes32 platform)
+```
+
+**Parameters**
+
+- `platform`: The duplicate platform.
+
+### `InvalidCodeHash`
+
+`disableCodeHashPlatforms` targeted a `_codeHash` that has no platforms on this extension.
+
+```solidity
+error InvalidCodeHash()
+```
+
+### `CodeHashPlatformAlreadyDisabled`
+
+`disableCodeHashPlatforms` targeted a `(codeHash, platform)` pair that is already disabled.
+
+```solidity
+error CodeHashPlatformAlreadyDisabled()
+```
+
+### `InvalidPlatform`
+
+`disableCodeHashPlatforms` targeted a platform that does not belong to that code hash version.
+
+```solidity
+error InvalidPlatform()
+```
+
+### `SystemOwnedExtensionId`
+
+The call targeted extension id `0` (the system extension).
+Thrown by `setExtensionContracts` and `proposeNewOwner`.
+Governance owns that extension; it cannot be transferred or reconfigured through these methods.
+
+```solidity
+error SystemOwnedExtensionId()
+```
+
+### `PlatformEmpty`
+
+Governance tried to add `bytes32(0)` to the system-supported platform list.
+
+```solidity
+error PlatformEmpty()
+```
+
+### `KeyTypeEmpty`
+
+A key type is `bytes32(0)`.
+Thrown by `addSupportedKeyTypes` and by governance when adding system-supported key types.
+
+```solidity
+error KeyTypeEmpty()
+```
+
+### `KeyTypeAlreadyExists`
+
+`addSupportedKeyTypes` added a key type that is already on the extension's list.
+
+```solidity
+error KeyTypeAlreadyExists(bytes32 keyType)
+```
+
+**Parameters**
+
+- `keyType`: The duplicate key type.
+
+### `NoKeyTypes`
+
+Governance passed an empty key-type array when adding or removing system-supported key types.
+
+```solidity
+error NoKeyTypes()
+```
+
+### `NoSigningAlgos`
+
+Governance added or removed a key type without any signing algorithms for that type.
+
+```solidity
+error NoSigningAlgos(bytes32 keyType)
+```
+
+**Parameters**
+
+- `keyType`: The key type that had an empty algorithm list.
+
+### `SigningAlgoEmpty`
+
+Governance passed `bytes32(0)` as a signing algorithm.
+
+```solidity
+error SigningAlgoEmpty()
+```
+
+### `SigningAlgoAlreadyExists`
+
+Governance tried to add a `(keyType, signingAlgo)` pair that is already on the system-supported list.
+
+```solidity
+error SigningAlgoAlreadyExists(bytes32 keyType, bytes32 signingAlgo)
+```
+
+**Parameters**
+
+- `keyType`: The key type.
+- `signingAlgo`: The algorithm that is already listed.
+
+### `SigningAlgoNotFound`
+
+Governance tried to remove a `(keyType, signingAlgo)` pair that is not on the system-supported list.
+
+```solidity
+error SigningAlgoNotFound(bytes32 keyType, bytes32 signingAlgo)
+```
+
+**Parameters**
+
+- `keyType`: The key type.
+- `signingAlgo`: The algorithm that was not found.
+
+### `PlatformNotFound`
+
+Governance tried to remove a platform that is not on the system-supported list.
+
+```solidity
+error PlatformNotFound(bytes32 platform)
+```
+
+**Parameters**
+
+- `platform`: The platform that was not found.
+
+### `InvalidReservedExtensionId`
+
+`registerReserved` used an id that is not in `[1, 65535]`.
+Id `0` is the system extension; ids from `65536` are assigned by public `register`.
+
+```solidity
+error InvalidReservedExtensionId()
+```
+
+### `ReservedExtensionIdAlreadyAssigned`
+
+`registerReserved` used an id that already has an owner.
+
+```solidity
+error ReservedExtensionIdAlreadyAssigned()
+```
+
+### `InvalidExtensionOwner`
+
+`registerReserved` was called with `_owner == address(0)`.
+
+```solidity
+error InvalidExtensionOwner()
+```
+
+### `NotAllowedExtensionOwner`
+
+The address is not on the global extension-owner allowlist ([`IOwnerAllowlist`](/fcc/reference/IOwnerAllowlist)).
+Thrown by public `register`, `proposeNewOwner` (if the new owner is non-zero and not allowlisted), and `confirmOwnership`.
+
+```solidity
+error NotAllowedExtensionOwner()
+```

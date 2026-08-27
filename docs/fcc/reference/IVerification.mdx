@@ -1,0 +1,271 @@
+---
+title: IVerification
+description: TEE machine attestation and availability checks.
+keywords: [fcc, tee, solidity, flare-confidential-compute, flare-network]
+sidebar_position: 4
+---
+
+Public interface for `VerificationFacet` on the [`FlareTeeManager`](/fcc/reference/IFlareTeeManager) diamond.
+
+A TEE machine stays trusted only while its **availability check** is valid.
+Nothing here is automatic: a caller requests attestation, FDC2 produces an availability-check proof, and someone submits that proof onchain.
+
+Typical flow:
+
+1. `requestTeeAttestation` creates a challenge and sends an `F_REG` / `TEE_ATTESTATION` instruction to the machine.
+   [`IMachineManager.register`](/fcc/reference/IMachineManager) already does this on first registration.
+2. `requestAvailabilityCheckAttestation` asks FDC2 for a `TeeAvailabilityCheck` proof.
+   The challenge must still be valid or the call reverts with `ChallengeExpired` error.
+3. `confirmAvailability` verifies the proof for a `PRODUCTION` machine and extends `endTs`.
+   First promotion `INITIALIZED → PRODUCTION` uses [`IMachineManager.toProduction`](/fcc/reference/IMachineManager) instead.
+
+The `getAvailabilityCheckValidity` function returns that window.
+After `endTs`, anyone can suspend the machine with `IMachineManager.pause`.
+
+Inherits shared [`ITeeCommonErrors`](/fcc/reference/ITeeCommonErrors).
+
+## Constants
+
+```solidity
+bytes32 constant TEE_SOURCE_ID = bytes32("TEE");
+```
+
+FDC2 source id for TEE availability-check attestations.
+
+## Types
+
+### `TeeAttestation`
+
+Body of the `TEE_ATTESTATION` instruction sent to the machine.
+
+```solidity
+struct TeeAttestation {
+        IMachineManager.TeeMachineWithAttestationData teeMachine;
+        bytes32 challenge;
+    }
+```
+
+## Functions
+
+### `requestTeeAttestation`
+
+Request attestation for a TEE machine.
+Emits TeeAttestationRequested event.
+
+```solidity
+function requestTeeAttestation(
+        address _teeId,
+        address _claimBackAddress
+    )
+        external payable
+```
+
+**Parameters**
+
+- `_teeId`: The TEE machine id.
+- `_claimBackAddress`: An address that can claim back the fee if the instructions are not executed (optional).
+
+### `requestAvailabilityCheckAttestation`
+
+Request availability check attestation for a TEE machine - triggers FDC2 availability check.
+
+```solidity
+function requestAvailabilityCheckAttestation(
+        address _teeId,
+        bytes32 _instructionId,
+        address _testOnTeeId,
+        address _proofOwner,
+        address _claimBackAddress
+    )
+        external payable
+```
+
+**Parameters**
+
+- `_teeId`: The TEE machine id.
+- `_instructionId`: The instruction ID used for the TEE attestation check (challenge must match).
+- `_testOnTeeId`: The TEE machine id to test on, if address(0) a random active TEE machine will be used.
+- `_proofOwner`: The proof owner address (optional).
+- `_claimBackAddress`: An address that can claim back the fee if the instructions are not executed (optional).
+
+### `confirmAvailability`
+
+Extend the availability check validity.
+Emits AvailabilityCheckValidityExtended event.
+
+```solidity
+function confirmAvailability(
+        ITeeAvailabilityCheck.Proof calldata _proof
+    )
+        external
+```
+
+**Parameters**
+
+- `_proof`: The availability check proof.
+  The machine must already be in `PRODUCTION`.
+  First promotion uses `IMachineManager.toProduction` instead.
+
+### `getCosigners`
+
+Returns the list of FDC2 cosigners and their threshold used for the TEE machine registration.
+
+```solidity
+function getCosigners()
+        external view
+        returns (
+            address[] memory _cosigners,
+            uint64 _cosignersThreshold
+        )
+```
+
+**Returns**
+
+- `_cosigners`: The list of cosigners.
+- `_cosignersThreshold`: The cosigners threshold.
+
+### `getSettings`
+
+Returns the settings.
+
+```solidity
+function getSettings()
+        external view
+        returns (
+            uint256 _availabilityCheckValidityDurationSeconds,
+            uint256 _challengeValidityDurationSeconds
+        )
+```
+
+**Returns**
+
+- `_availabilityCheckValidityDurationSeconds`: The availability check validity duration.
+- `_challengeValidityDurationSeconds`: The challenge validity duration.
+
+The `SettingsUpdated` event also records `signingPolicyValidityDurationInRewardEpochs`.
+That value is not returned here.
+
+### `getAvailabilityCheckValidity`
+
+Returns the availability check validity for a TEE machine.
+
+```solidity
+function getAvailabilityCheckValidity(
+        address _teeId
+    )
+        external view
+        returns (
+            uint64 _endTs,
+            uint32 _lastSigningPolicyId
+        )
+```
+
+**Parameters**
+
+- `_teeId`: The TEE machine id.
+
+**Returns**
+
+- `_endTs`: The end timestamp of the availability check validity.
+- `_lastSigningPolicyId`: The last signing policy id.
+
+## Events
+
+### `SettingsUpdated`
+
+```solidity
+event SettingsUpdated(
+        uint64 availabilityCheckValidityDurationSeconds,
+        uint64 signingPolicyValidityDurationInRewardEpochs,
+        uint64 challengeValidityDurationSeconds
+    )
+```
+
+**Parameters**
+
+- `availabilityCheckValidityDurationSeconds` (`uint64 availabilityCheckValidityDurationSeconds`)
+- `signingPolicyValidityDurationInRewardEpochs` (`uint64 signingPolicyValidityDurationInRewardEpochs`)
+- `challengeValidityDurationSeconds` (`uint64 challengeValidityDurationSeconds`)
+
+### `CosignersSet`
+
+```solidity
+event CosignersSet(
+        address[] cosigners,
+        uint64 cosignersThreshold
+    )
+```
+
+**Parameters**
+
+- `cosigners` (`address[] cosigners`)
+- `cosignersThreshold` (`uint64 cosignersThreshold`)
+
+### `TeeAttestationRequested`
+
+```solidity
+event TeeAttestationRequested(
+        address indexed teeId,
+        bytes32 challenge
+    )
+```
+
+**Parameters**
+
+- `teeId` (`address indexed teeId`)
+- `challenge` (`bytes32 challenge`)
+
+### `AvailabilityCheckValidityExtended`
+
+```solidity
+event AvailabilityCheckValidityExtended(
+        address indexed teeId,
+        address indexed owner,
+        uint256 endTs
+    )
+```
+
+**Parameters**
+
+- `teeId` (`address indexed teeId`)
+- `owner` (`address indexed owner`)
+- `endTs` (`uint256 endTs`)
+
+## Errors
+
+Facet-specific errors are listed here.
+The interface also inherits shared [`ITeeCommonErrors`](/fcc/reference/ITeeCommonErrors).
+The `confirmAvailability` function uses those for later checks: `AvailabilityCheckTimestampInvalid` if the proof header timestamp is outside `[challengeTs, now)`, and `InvalidResponseData` if the proof's response body fails (code hash, platform, signing policy, or state).
+
+### `ChallengeExpired`
+
+The attestation challenge for this machine is no longer valid.
+The `challengeTs` value is when the challenge was created.
+Thrown by `requestAvailabilityCheckAttestation` if you wait longer than `challengeValidityDurationSeconds` after `requestTeeAttestation`, and again when a proof is verified if that window has already closed.
+Call `requestTeeAttestation` again to mint a fresh challenge.
+
+```solidity
+error ChallengeExpired(uint256 challengeTs)
+```
+
+**Parameters**
+
+- `challengeTs`: Timestamp when the expired challenge was created.
+
+### `InvalidAttestation`
+
+The proof is not a TEE availability-check attestation.
+Thrown when verifying a proof whose FDC2 header does not have `attestationType = TeeAvailabilityCheck`, `sourceId = TEE`, and `thresholdBIPS = 0`.
+
+```solidity
+error InvalidAttestation()
+```
+
+### `InvalidRequestBody`
+
+The proof's request body does not match the machine onchain.
+Thrown when verifying a proof whose `url`, `teeProxyId`, or `challenge` differs from the registered TEE machine and the stored challenge.
+
+```solidity
+error InvalidRequestBody()
+```

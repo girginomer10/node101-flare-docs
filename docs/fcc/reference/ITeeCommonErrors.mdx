@@ -1,0 +1,298 @@
+---
+title: ITeeCommonErrors
+description: Shared custom errors for FlareTeeManager facet interfaces.
+keywords: [fcc, tee, solidity, flare-confidential-compute, flare-network]
+sidebar_position: 8
+---
+
+Shared custom errors used across multiple [`FlareTeeManager`](/fcc/reference/IFlareTeeManager) facet interfaces.
+
+The interface has no functions.
+It exists so the same error selectors can be declared once and inherited by many facets without "Identifier already declared" when those interfaces are combined into `IFlareTeeManager`.
+
+Facet-specific errors stay on the facet pages ([`IExtensionManager`](/fcc/reference/IExtensionManager), [`IMachineManager`](/fcc/reference/IMachineManager), [`IVerification`](/fcc/reference/IVerification), [`IOperationFees`](/fcc/reference/IOperationFees), [`IOwnerAllowlist`](/fcc/reference/IOwnerAllowlist)).
+
+## Access control
+
+### `OnlyOwner`
+
+The caller is not the owner of the resource the function acts on (TEE machine, wallet, or wallet project).
+
+```solidity
+error OnlyOwner()
+```
+
+### `OnlyExtensionOwner`
+
+The caller is not the owner of the extension.
+
+```solidity
+error OnlyExtensionOwner()
+```
+
+### `OnlyExtensionOwnerOrOperator`
+
+The caller is neither the extension owner nor the optional extension operator.
+Used for prep steps such as machine-path-list lifecycle, where the real security gate is a later governance threshold.
+
+```solidity
+error OnlyExtensionOwnerOrOperator()
+```
+
+### `OnlyProposedOwner`
+
+The caller is not the address proposed in a two-step ownership transfer (`proposeNewOwner` / `confirmOwnership`).
+
+```solidity
+error OnlyProposedOwner()
+```
+
+### `OnlyOwnerOrBackupManager`
+
+The caller is neither the wallet project owner nor that project's backup manager.
+
+```solidity
+error OnlyOwnerOrBackupManager()
+```
+
+### `OnlyProductionOrPausedStatus`
+
+The wallet is not in `PRODUCTION` or `PAUSED` status.
+Thrown by Protocol Managed Wallet payment flows that require the wallet to be usable or paused, not uninitialized or banned.
+
+```solidity
+error OnlyProductionOrPausedStatus()
+```
+
+### `OwnerNotAllowed`
+
+The address is not on the relevant [`IOwnerAllowlist`](/fcc/reference/IOwnerAllowlist) (extension owner, TEE machine owner, or wallet project owner).
+
+```solidity
+error OwnerNotAllowed()
+```
+
+### `NotOwnerOrPauser`
+
+The caller cannot pause: they are not the owner and not a listed pauser for that extension or wallet project.
+
+```solidity
+error NotOwnerOrPauser(address caller)
+```
+
+**Parameters**
+
+- `caller`: The address that attempted the pause.
+
+### `NotOwnerOrUnpauser`
+
+The caller cannot unpause: they are not the owner and not a listed unpauser for that extension or wallet project.
+
+```solidity
+error NotOwnerOrUnpauser(address caller)
+```
+
+**Parameters**
+
+- `caller`: The address that attempted the unpause.
+
+## Validation
+
+### `ExtensionIdMismatch`
+
+The TEE machines, wallets, or backups in the call do not all belong to the same extension.
+
+```solidity
+error ExtensionIdMismatch()
+```
+
+### `TeeMachineNotAvailable`
+
+The TEE machine is not in `PRODUCTION`.
+Thrown when sending non-system instructions or when confirming availability for a machine that is not live.
+
+```solidity
+error TeeMachineNotAvailable()
+```
+
+### `InvalidKeyType`
+
+The key type on the proof or backup does not match the wallet project's configured key type.
+
+```solidity
+error InvalidKeyType()
+```
+
+### `InvalidSigningAlgo`
+
+The signing algorithm on the proof or backup does not match the wallet project's configured algorithm.
+
+```solidity
+error InvalidSigningAlgo()
+```
+
+### `InvalidPublicKey`
+
+The public key is empty or does not match the key already stored for that wallet.
+
+```solidity
+error InvalidPublicKey()
+```
+
+### `InvalidDuration`
+
+A governance duration is outside the allowed range.
+Availability-check validity must be between 1 hour and 365 days, signing-policy validity between 1 and 100 reward epochs, and challenge validity between 1 minute and 1 hour.
+
+```solidity
+error InvalidDuration()
+```
+
+### `InvalidResponseData`
+
+An availability-check proof's response body failed verification (code hash, platform, signing policy, or state).
+See [`IVerification.confirmAvailability`](/fcc/reference/IVerification).
+
+```solidity
+error InvalidResponseData()
+```
+
+### `InvalidThreshold`
+
+A threshold is zero, larger than the signer or cosigner set, or does not match the stored configuration.
+
+```solidity
+error InvalidThreshold()
+```
+
+### `InvalidCosigner`
+
+A cosigner address is zero, or the caller is not a registered wallet cosigner.
+
+```solidity
+error InvalidCosigner(address cosigner)
+```
+
+**Parameters**
+
+- `cosigner`: The invalid or unauthorized address.
+
+### `DuplicatedCosigner`
+
+The same cosigner address appears more than once in the list.
+
+```solidity
+error DuplicatedCosigner(address cosigner)
+```
+
+**Parameters**
+
+- `cosigner`: The duplicated address.
+
+### `InvalidAvailabilityCheckStatus`
+
+The availability-check proof status is not `OK`.
+
+```solidity
+error InvalidAvailabilityCheckStatus()
+```
+
+### `InvalidWalletStatus`
+
+The wallet is not in the status the function requires (for example, not `PRODUCTION` when generating keys).
+
+```solidity
+error InvalidWalletStatus()
+```
+
+### `LengthsMismatch`
+
+Parallel arrays in the call (for example operation types, commands, and fees) do not have the same length.
+
+```solidity
+error LengthsMismatch()
+```
+
+### `VersionNotSupported`
+
+The `(codeHash, platform)` pair is not supported for the extension.
+
+```solidity
+error VersionNotSupported()
+```
+
+### `AvailabilityCheckTimestampInvalid`
+
+The proof header timestamp is not strictly before `block.timestamp`, is earlier than the stored challenge time, or is before the machine's last status change.
+
+```solidity
+error AvailabilityCheckTimestampInvalid()
+```
+
+### `KeyTypeNotSupported`
+
+The key type is not on the extension's supported list (or the system-supported list when adding types).
+
+```solidity
+error KeyTypeNotSupported(bytes32 keyType)
+```
+
+**Parameters**
+
+- `keyType`: The unsupported key type.
+
+### `InvalidNonce`
+
+The nonce is zero, out of range, or does not match the stored nonce for that TEE (machine-path lists and key confirmation).
+
+```solidity
+error InvalidNonce()
+```
+
+### `InvalidGovernanceHash`
+
+The governance hash is unknown, has a zero threshold, or is not the extension's latest hash at machine registration.
+
+```solidity
+error InvalidGovernanceHash()
+```
+
+### `InvalidAddress`
+
+An address in the list is zero, or a stored address does not match the value in the call.
+
+```solidity
+error InvalidAddress()
+```
+
+### `AddressAlreadyInSet`
+
+The address is already in the allowlist or pauser set.
+
+```solidity
+error AddressAlreadyInSet(address addr)
+```
+
+**Parameters**
+
+- `addr`: The address that is already present.
+
+### `AddressNotInSet`
+
+The address is not in the allowlist or pauser set, so it cannot be removed.
+
+```solidity
+error AddressNotInSet(address addr)
+```
+
+**Parameters**
+
+- `addr`: The address that was not found.
+
+### `NoAddresses`
+
+The call passed an empty address list.
+
+```solidity
+error NoAddresses()
+```

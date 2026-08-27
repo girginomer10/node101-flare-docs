@@ -1,0 +1,23 @@
+---
+title: IFlareTeeManager
+description: Aggregate public interface for the FlareTeeManager diamond.
+keywords: [fcc, tee, solidity, flare-confidential-compute, flare-network]
+sidebar_position: 1
+---
+
+The `IFlareTeeManager` interface is the aggregate public ABI for the **FlareTeeManager** diamond — the on-chain core of Flare Confidential Compute (FCC).
+It has no functions of its own.
+
+The `FlareTeeManager` contract is deployed on **Coston2** at [`0x1a9C4A0f9D76c0b1D91d22E24E573a9b377618aE`](https://coston2-explorer.flare.network/address/0x1a9C4A0f9D76c0b1D91d22E24E573a9b377618aE) and on **Coston** at [`0xc4885998f5D792ed88C5Af7a3AaCBe333f017658`](https://coston-explorer.flare.network/address/0xc4885998f5D792ed88C5Af7a3AaCBe333f017658).
+Prefer resolving it from the [Flare Contract Registry](/network/guides/flare-contracts-registry) as `"FlareTeeManager"` when the name is listed.
+Other Flare networks will follow soon.
+
+This reference documents five of the inherited facet interfaces in full:
+
+- [`IExtensionManager`](/fcc/reference/IExtensionManager) — register and configure extensions;
+- [`IMachineManager`](/fcc/reference/IMachineManager) — TEE machine registration and lifecycle;
+- [`IVerification`](/fcc/reference/IVerification) — attestation and availability checks;
+- [`IOperationFees`](/fcc/reference/IOperationFees) — per-instruction fees;
+- [`IOwnerAllowlist`](/fcc/reference/IOwnerAllowlist) — owner allowlists.
+
+Shared custom errors live on [`ITeeCommonErrors`](/fcc/reference/ITeeCommonErrors).
