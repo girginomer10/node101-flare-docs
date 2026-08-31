@@ -22,6 +22,8 @@ keywords:
 unlisted: false
 ---
 
+import YouTubeEmbed from "@site/src/components/YouTubeEmbed";
+
 Each Trusted Execution Environment (TEE) machine generates an identity key pair at boot.
 The public half is the TEE identity.
 The private half stays inside the TEE enclave, and is never revealed to anyone.
@@ -136,6 +138,12 @@ Explanation of the diagram:
 
 If the ciphertext was encrypted to a _different_ TEE's public key, decryption fails.
 Keys are per identity, not a global FCC password.
+
+## Watch the video
+
+Watch the video to see the pattern in action:
+
+<YouTubeEmbed videoId="WaGmP1F0vtc"></YouTubeEmbed>
 
 :::tip[What's next]
 Who is allowed to send the TEE work is a different stamp, covered next: [data providers and cosigners](/fcc/data-providers).
