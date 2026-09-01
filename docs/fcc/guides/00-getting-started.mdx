@@ -21,10 +21,9 @@ unlisted: false
 
 import CodeBlock from "@theme/CodeBlock";
 import InstructionSender from "!!raw-loader!/examples/developer-hub-fcc-scaffold/contracts/InstructionSender.sol";
-import ConfigGo from "!!raw-loader!/examples/developer-hub-fcc-scaffold/internal/config/config.go";
-import ExtensionGo from "!!raw-loader!/examples/developer-hub-fcc-scaffold/internal/extension/extension.go";
-import TypesGo from "!!raw-loader!/examples/developer-hub-fcc-scaffold/pkg/types/types.go";
-import RegisterGo from "!!raw-loader!/examples/developer-hub-fcc-scaffold/pkg/types/register.go";
+import ConfigGo from "!!raw-loader!/examples/developer-hub-fcc-scaffold/go/internal/config/config.go";
+import ExtensionGo from "!!raw-loader!/examples/developer-hub-fcc-scaffold/go/internal/extension/extension.go";
+import TypesGo from "!!raw-loader!/examples/developer-hub-fcc-scaffold/go/pkg/types/types.go";
 
 Build your first **Flare Confidential Compute (FCC)** extension from the Hello World scaffold example.
 This guide walks you through the setup and testing flow, how extensions fit into the TEE stack, which files you customize, and how to deploy and test on **Coston2** testnet.
@@ -101,6 +100,10 @@ git clone https://github.com/flare-foundation/fce-extension-scaffold.git
 cd fce-extension-scaffold
 ```
 
+The scaffold implements the same Hello World extension in Go, Python, and TypeScript.
+This guide uses the Go default (`LANGUAGE=go` in `.env`).
+Set `LANGUAGE=python` or `LANGUAGE=typescript` to run the other implementations; the contract, scripts, and Coston2 flow stay the same.
+
 ## Hello World Onchain Smart Contract
 
 The `HelloWorldInstructionSender` smart contract is the only onchain entry point for your operations, and it connects the rest of the flow.
@@ -127,16 +130,16 @@ On release, addresses will be available through the [`FlareContractRegistry`](/n
 ## Customizing the Extension
 
 The scaffold is a complete Hello World example.
-The HTTP server and deploy scripts are ready to use — customize these files so OPType and OPCommand strings stay aligned across Solidity and Go:
+The HTTP server and deploy scripts are ready to use.
+Customize the Go files under `go/` so OPType and OPCommand strings stay aligned with the Solidity contract:
 
-| #   | File                              | What you change                                            |
-| --- | --------------------------------- | ---------------------------------------------------------- |
-| 1   | `internal/config/config.go`       | OPType and OPCommand string constants and SemVer `Version` |
-| 2   | `pkg/types/types.go`              | Request, response, and state structs                       |
-| 3   | `internal/extension/extension.go` | Routing and handlers                                       |
-| 4   | `pkg/types/register.go`           | Decoders for the types server                              |
-| 5   | `contracts/InstructionSender.sol` | Matching `bytes32` constants and send functions            |
-| 6   | `tools/cmd/run-test/main.go`      | E2E payloads and assertions                                |
+| #   | File                                 | What you change                                            |
+| --- | ------------------------------------ | ---------------------------------------------------------- |
+| 1   | `go/internal/config/config.go`       | OPType and OPCommand string constants and SemVer `Version` |
+| 2   | `go/pkg/types/types.go`              | Request, response, and state structs                       |
+| 3   | `go/internal/extension/extension.go` | Routing and handlers                                       |
+| 4   | `contracts/InstructionSender.sol`    | Matching `bytes32` constants and send functions            |
+| 5   | `tools/cmd/run-test/main.go`         | E2E payloads and assertions                                |
 
 ### OPType and OPCommand Must Match
 
@@ -173,7 +176,7 @@ OPType strings beginning with `F_` are reserved for Flare system operations, so 
 
 ### Config Constants
 
-<CodeBlock language="go" title="internal/config/config.go">
+<CodeBlock language="go" title="go/internal/config/config.go">
   {ConfigGo}
 </CodeBlock>
 
@@ -181,7 +184,7 @@ Increment `Version` when behavior or the onchain interface changes, because the 
 
 ### Request and Response Types
 
-<CodeBlock language="go" title="pkg/types/types.go">
+<CodeBlock language="go" title="go/pkg/types/types.go">
   {TypesGo}
 </CodeBlock>
 
@@ -198,20 +201,12 @@ Status values in `ActionResult`:
 - **`1`** — success
 - **`≥ 2`** — pending (async work; later POST final result to the node)
 
-<CodeBlock language="go" title="internal/extension/extension.go">
+<CodeBlock language="go" title="go/internal/extension/extension.go">
   {ExtensionGo}
 </CodeBlock>
 
 Leave `New()` and the HTTP wiring in place.
 Add your own OPType cases in `processAction`, then implement command handlers next to `processSayHello` / `processSayGoodbye`.
-
-### Decoder Registry
-
-Register message and result decoders so tooling and the types server can decode payloads for your commands:
-
-<CodeBlock language="go" title="pkg/types/register.go">
-  {RegisterGo}
-</CodeBlock>
 
 ## Deploying and Testing on Coston2
 
@@ -402,7 +397,7 @@ If it passes, your Hello World extension is live against Coston2.
 
 1. Choose OPType/OPCommand names that describe your operations, avoiding the reserved `F_` OPType prefix.
 2. Update Solidity constants and send functions; regenerate Go bindings if you change the ABI (`./scripts/generate-bindings.sh`).
-3. Implement handlers and types; register decoders.
+3. Implement handlers and types.
 4. Update `tools/cmd/run-test/main.go` and re-run `./scripts/test.sh`.
 5. Rebuild the TEE image after code changes: `./scripts/start-services.sh --chain coston2` (compose uses `--build`).
 

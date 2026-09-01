@@ -149,7 +149,8 @@ Descriptive names also make instructions easier to identify onchain.
 ### Related: Name Mismatch Between Solidity And Go
 
 If the extension responds with `unsupported op type` or `unsupported op command`, the instruction reached you, and the names do not match.
-The `bytes32("...")` strings in your Solidity contract must match the constants in `internal/config/config.go` exactly, including case.
+The `bytes32("...")` strings in your Solidity contract must match the `OPType` and `OPCommand` constants in your extension config exactly, including case.
+In the Hello World scaffold that file is `go/internal/config/config.go`.
 
 ## Indexer Database Connection Fails
 
