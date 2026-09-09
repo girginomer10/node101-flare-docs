@@ -37,7 +37,8 @@
     "Arkham Intel": "Blockchain analytics platform for de-anonymizing onchain wallets and transactions.",
     "Dfns": "Wallets-as-a-service platform to streamline digital asset operations and onboard users into crypto.",
     "Catenalytica": "FTSO performance, vote power insights, reward analytics and real-time network monitoring.",
-    "FlareBase": "Web and REST APIs for key data and insights from Flare."
+    "FlareBase": "Web and REST APIs for key data and insights from Flare.",
+    "node101": "Paid Flare JSON-RPC and managed dedicated nodes with distributed request handling, the 101 Dashboard, real-time infrastructure monitoring, 24/7 support, and incident reports. Archive nodes and Coston2 testnet RPC are available on request. Deployment options include Türkiye, Europe, and the United States."
   },
   "networkTools": {
     "flare": {
@@ -73,6 +74,10 @@
           {
             "name": "ChainList",
             "link": "https://ChainList.org/chain/14"
+          },
+          {
+            "name": "node101",
+            "link": "https://node101.io/en/rpc/flare"
           }
         ],
         "OFTs": [
@@ -214,6 +219,10 @@
           {
             "name": "ChainList",
             "link": "https://ChainList.org/chain/114"
+          },
+          {
+            "name": "node101",
+            "link": "https://node101.io/en/rpc/flare"
           }
         ],
         "OFTs": [],
